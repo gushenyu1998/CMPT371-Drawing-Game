@@ -98,7 +98,7 @@ print("\n\n\n")
 
 # uncomment it to see
 # print(map.readWholeMap())
-
+print(map.readMapInUidList())
 
 # it will return (pixcel_list[], winner_info)
 #pixcel_list is a list of pixcel

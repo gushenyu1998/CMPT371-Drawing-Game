@@ -301,6 +301,21 @@ class Map:
             self.freeCell(cell_col, cell_row)
 
 
+    def readMapInUidList(self):
+        uid_list = []
+
+        for i in range(len(self.map_data)):
+            uid_list.append(self.map_data[i].getUID())
+            # print(self.map_data[i].getUID())
+        
+        return uid_list
+
+
+
+
+
+
+
     """
     Function:   get the whole map data whith the format of (map_data, (winner_ID, True is game is end))
 
