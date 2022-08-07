@@ -310,7 +310,7 @@ class Map:
                         or (0, false) if the game is not ended
     """
     def readWholeMap(self):
-        return(self.map_data, self.checkWin())
+        return self.map_data
 
     #test function
     def printMap(self):
