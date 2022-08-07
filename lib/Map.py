@@ -117,15 +117,41 @@ class Map:
         coor = self.coordinate2Index(row, col)
         return self.cell_map[coor].getLock()
     
-    #[Abandoned]
-    def lockCell(self, cell_row, cell_col):
-        coor = self.coordinate2Index(cell_row, cell_col)
-        self.cell_map[coor].lockPixcel()
+    
+    def lockPixceslInCell(self, cell_row, cell_col):
+        pixcel_x_min = cell_col*self.CELL_LENGTH
+        pixcel_x_max = cell_col*(self.CELL_LENGTH) + self.CELL_LENGTH
 
-    #[Abandoned]
-    def unlockCell(self, cell_row, cell_col):
-        coor = self.coordinate2Index(cell_row, cell_col)
-        self.cell_map[coor].unlockPixcel()
+        pixcel_y_min = cell_row*self.CELL_LENGTH
+        pixcel_y_max = cell_row*(self.CELL_LENGTH) + self.CELL_LENGTH
+
+        row_iter = pixcel_y_min
+        while(row_iter < pixcel_y_max):
+            col_iter = pixcel_x_min
+            while(col_iter < pixcel_x_max):
+                self.map_data[self.coordinate2Index(
+                    row_iter, col_iter)].lockPixcel()
+
+                col_iter += 1
+            row_iter += 1
+
+
+    def unlockPixceslinCell(self, cell_row, cell_col):
+        pixcel_x_min = cell_col*self.CELL_LENGTH
+        pixcel_x_max = cell_col*(self.CELL_LENGTH) + self.CELL_LENGTH
+
+        pixcel_y_min = cell_row*self.CELL_LENGTH
+        pixcel_y_max = cell_row*(self.CELL_LENGTH) + self.CELL_LENGTH
+
+        row_iter = pixcel_y_min
+        while(row_iter < pixcel_y_max):
+            col_iter = pixcel_x_min
+            while(col_iter < pixcel_x_max):
+                self.map_data[self.coordinate2Index(
+                    row_iter, col_iter)].unlockPixcel()
+
+                col_iter += 1
+            row_iter += 1
 
 
     """
@@ -164,6 +190,8 @@ class Map:
             pixcel_row = ink[i].getRow()
             pixcel_col = ink[i].getCol()
             cell_index = self.pixcelCoordinate2CellIndex(pixcel_row, pixcel_col)
+            cell_row = self.cellIndex2Coordinate(cell_index)[0]
+            cell_col = self.cellIndex2Coordinate(cell_index)[1]
 
             #case of this cell is already taken by any user
             if str(cell_index) in self.occupiedDict:
@@ -181,6 +209,8 @@ class Map:
             # case of cell is not locked
             self.locked_cell_dict[str(cell_index)] = uid                       # add this cell to locked_cell_dict
             self.getPixcel(pixcel_row, pixcel_col).setUID(ink[i].getUID())       # write in to the map
+            self.getPixcel(pixcel_row, pixcel_col).lockPixcel()
+            self.lockPixceslInCell(cell_row,cell_col)
             # map.getPixcel(pixcel_row, pixcel_col).setUID(ink[i].lockPixcel())   
 
             # add this cell to adjudication_queue for checking if reach 50%
@@ -210,7 +240,7 @@ class Map:
                 self.map_data[self.coordinate2Index(
                     row_iter, col_iter)].setUID(0)
                 self.map_data[self.coordinate2Index(
-                    row_iter, col_iter)].unlockPixcel() # may remove later
+                    row_iter, col_iter)].unlockPixcel()
                 col_iter += 1
             row_iter += 1
 
@@ -235,7 +265,7 @@ class Map:
                 self.map_data[self.coordinate2Index(
                     row_iter, col_iter)].setUID(occupier_uid)
                 self.map_data[self.coordinate2Index(
-                    row_iter, col_iter)].lockPixcel() # may remove later
+                    row_iter, col_iter)].lockPixcel()
 
                 col_iter += 1
             row_iter += 1
@@ -301,6 +331,10 @@ class Map:
             self.freeCell(cell_col, cell_row)
 
 
+    """
+    Function:   read the map data and return a list in [(UID)] format
+    Return:      [(UID)]
+    """
     def readMapInUidList(self):
         uid_list = []
 
@@ -309,6 +343,19 @@ class Map:
             # print(self.map_data[i].getUID())
         
         return uid_list
+
+    """
+    Function:   read the map data and return a list in [(UID, lock)] format
+    Return:      [(UID, lock)]
+    """
+    def readMapInUidLockList(self):
+        map_list = []
+
+        for i in range(len(self.map_data)):
+            map_list.append((self.map_data[i].getUID(),self.map_data[i].getLock()))
+            # print(self.map_data[i].getUID())
+        
+        return map_list
 
 
 

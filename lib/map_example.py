@@ -33,7 +33,7 @@ ink.append(Pixcel.Pixcel(6, time.time(), False, False, 0, 6, True))
 map.draw(ink)
 print("draw(ink):")
 map.printMap()
-
+print(map.readMapInUidLockList())
 print("because we don't set stop drowing, the cell not reach 50% will not be cleared")
 
 ink2 = []
@@ -98,7 +98,7 @@ print("\n\n\n")
 
 # uncomment it to see
 # print(map.readWholeMap())
-print(map.readMapInUidList())
+print(map.readMapInUidLockList())
 
 # it will return (pixcel_list[], winner_info)
 #pixcel_list is a list of pixcel
