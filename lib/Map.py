@@ -154,7 +154,6 @@ class Map:
                 col_iter += 1
             row_iter += 1
 
-
     """
     Function:   getter of inner pixcel of the map
 

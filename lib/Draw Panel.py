@@ -90,7 +90,7 @@ class Painter:
         # self.game_update()
         print("Thread painter start")
         while True:
-            self.clock.tick(10)
+            self.clock.tick(600)
             for event in pg.event.get():
                 if event.type == QUIT:
                     exit()
@@ -98,7 +98,7 @@ class Painter:
                         event.type == MOUSEMOTION or \
                         event.type == MOUSEBUTTONUP:
                     self.paint_judgement(position=event.pos, event_type=event.type)
-            if len(draw_data) > 200:
+            if len(draw_data) > 1024:
                 while len(draw_data) != 0:
                     message = draw_data.pop()
                     sending = json.dumps(message)
@@ -139,19 +139,20 @@ class Painter:
                 if 1 < x_axis < 599 and 1 < y_axis < 599 and lock_list[x_axis][y_axis] == True:
                     if event_type == MOUSEBUTTONDOWN:
                         self.brush.start((x_axis, y_axis))
-                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'occupied': True}
+                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': True}
                         draw_data.append(message)
                         return
                     elif event_type == MOUSEMOTION:
                         self.brush.Draw((x_axis, y_axis))
                         if self.brush.drawing:
-                            message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'occupied': True}
+                            message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': True}
                             draw_data.append(message)
                     elif event_type == MOUSEBUTTONUP:
                         self.brush.close()
-                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'occupied': False}
-                        draw_data.append(message)
-                        return
+                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': False}
+                        sending = ";"+json.dumps(message)+""
+                        for i in range(100):
+                            self.sock.send(sending.encode())
 
 
 class TCP_client:

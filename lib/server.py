@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+from fnmatch import fnmatch
 
 import numpy as np
 
@@ -30,11 +31,12 @@ def server():
             data_stock = data.split(';')
             while len(data_stock) != 0:
                 data_js= data_stock.pop()
-                if len(data_js) == 55:
+                if fnmatch('{"UID": *, "draw_record": *, "more": *}'):
                     data_json = json.loads(data_js)
                     data_example.append(data_json)
-                    if len(data_example)>=1000:
-                        with open('./json_file example','w') as f:
+                    print(data_json['more'])
+                    if not data_json['more']:
+                        with open('../json_file_example','w') as f:
                             f.write(str(data_example))
                         BreakFlag = False
         socket_thread.close()
@@ -46,7 +48,7 @@ def server():
 
 if __name__ == '__main__':
     server()
-    # print(len('{"UID": 1, "draw_record": [469, 184], "occupied": true}'))
+    #print(len('{"UID": 1, "draw_record": [287, 233], "more": true}'))
 
 
 
