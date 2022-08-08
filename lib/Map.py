@@ -2,6 +2,7 @@ from pyexpat.errors import XML_ERROR_INCORRECT_ENCODING
 from xml.etree.ElementTree import tostring
 import Pixcel
 import time
+import json
 
 
 class Map:
@@ -220,6 +221,14 @@ class Map:
         return self.checkWin()
 
 
+    """
+    Function:   receive json string and call draw()
+    """
+    def drawJSON(self, ink_json):
+        ink = json.loads(ink_json)
+        self.draw(ink)
+
+
 
     """
     Function:   unlock the cell and set all pixcel's uid to 0
@@ -356,6 +365,18 @@ class Map:
             # print(self.map_data[i].getUID())
         
         return map_list
+
+    def readMapInUidLockListJSON(self):
+        map_list = []
+
+        for i in range(len(self.map_data)):
+            map_list.append((self.map_data[i].getUID(),self.map_data[i].getLock()))
+            # print(self.map_data[i].getUID())
+
+        json_map_data = json.dumps(map_list)
+        
+        return json_map_data
+
 
 
 
