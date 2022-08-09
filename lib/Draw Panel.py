@@ -1,15 +1,14 @@
 import json
+import math
 import random
 import socket
-import threading
 import time
 from fnmatch import fnmatch
-
-import pygame as pg
-import math
-from pygame.locals import *
+from multiprocessing import Process, Queue
+import server
 import numpy as np
-from multiprocessing import Process
+import pygame as pg
+from pygame.locals import *
 
 Client_UID = 1
 color = (0, 0, 0)
@@ -133,7 +132,6 @@ class Painter:
     def run(self):
         self.screen.fill((255, 255, 255))
         self.draw_game_line()
-        print("Thread painter start")
         while True:
             self.clock.tick(600)
             for event in pg.event.get():
@@ -224,20 +222,23 @@ class TCP_client:
     def receiver_run(self):
         pass
 
+def infinitloop():
+    server.server()
 
-if __name__ == '__main__':
-    proccess = []
-
+def paint_run():
+    time.sleep(1)
     app = TCP_client()
     app.run()
-    # p2 = Process(target=server.server())
-    # print('test')
-    # p1 = Process(target=app.run())
-    # p1.start()
-    #
-    # p1.join()
-    # p2.join()
 
+
+if __name__ == '__main__':
+    q = Queue(2)
+    p2 = Process(target=infinitloop)
+    p1 = Process(target=paint_run)
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
     # ink = []
     # map = Map.Map(map_cell, cell_pixel_length, 4)
     # for i in range(600):
