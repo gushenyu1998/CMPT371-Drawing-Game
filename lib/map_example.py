@@ -104,3 +104,8 @@ print(map.readMapInUidLockListJSON())
 # it will return (pixcel_list[], winner_info)
 #pixcel_list is a list of pixcel
 #winner info have the same same with checkWin()
+
+print("\n\n\n")
+json_str = "[{'UID': 1, 'draw_record': [1, 2], 'more': True}, {'UID': 1, 'draw_record': [2, 2], 'more': True}]"
+
+map.drawJSON(json_str)

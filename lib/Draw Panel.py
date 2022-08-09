@@ -9,7 +9,7 @@ import math
 from pygame.locals import *
 import numpy as np
 
-from lib import server
+# from lib import server
 
 from multiprocessing import Process
 

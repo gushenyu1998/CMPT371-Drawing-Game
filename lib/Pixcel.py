@@ -15,7 +15,7 @@ class Pixcel(dict):
         self["occupied"] = occupied
         self.col = col
         self.row = row
-        self.more = more
+        self["more"] = more
 
     def setUID(self, UID):
         self["UID"] = UID
@@ -55,7 +55,7 @@ class Pixcel(dict):
         return self.col
 
     def getMoreFlag(self):
-        return self.more
+        return self["more"]
 
     def setNoMore(self):
         self.more = False

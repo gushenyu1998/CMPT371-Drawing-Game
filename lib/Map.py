@@ -154,6 +154,7 @@ class Map:
                 col_iter += 1
             row_iter += 1
 
+
     """
     Function:   getter of inner pixcel of the map
 
@@ -224,7 +225,32 @@ class Map:
     Function:   receive json string and call draw()
     """
     def drawJSON(self, ink_json):
-        ink = json.loads(ink_json)
+        ink_json = ink_json.replace("'",'"')
+        ink_json = ink_json.replace("True",'"True"')
+        ink_json = ink_json.replace("False",'"False"')
+        # print(ink_json)
+        # print("\n\n\n")
+        # print(json.loads(ink_json))
+        json_data = json.loads(ink_json)
+        # print("\n\njsdata:\n")
+        # print(json_data)
+
+
+        # print(json_data["UID"])
+        # print(json_data["draw_record"])
+        # print(json_data["more"])
+
+        ink = []
+
+        for i in range(len(json_data)):
+            # print(json_data[i]["UID"])
+            # print(json_data[i]["draw_record"])
+            # print(json_data[i]["more"])
+            ink.append(Pixcel.Pixcel(json_data[i]["UID"], time.time(), False, False, json_data[i]["draw_record"][0], json_data[i]["draw_record"][1], json_data[i]["more"] == "True"))
+
+
+        # print(ink)
+
         self.draw(ink)
 
 

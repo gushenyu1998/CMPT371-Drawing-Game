@@ -31,7 +31,11 @@ def server():
             data_stock = data.split(';')
             while len(data_stock) != 0:
                 data_js= data_stock.pop()
-                if fnmatch('{"UID": *, "draw_record": *, "more": *}'):
+                # print("\n\n\ndata_js",data_js)
+                if fnmatch(str(data_js),'{"UID": *, "draw_record": *, "more": *}'):
+
+                    # print("=================fnmatch\n")
+                    # return
                     data_json = json.loads(data_js)
                     data_example.append(data_json)
                     print(data_json['more'])
