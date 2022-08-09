@@ -113,10 +113,12 @@ class Map:
         else:
             return (0, False)
 
-    #[Abandoned]
+
     def getCellLock(self, row, col):
         coor = self.coordinate2Index(row, col)
-        return self.cell_map[coor].getLock()
+        if str(coor) in self.locked_cell_dict:
+            return True
+        return False
     
     
     def lockPixceslInCell(self, cell_row, cell_col):
@@ -282,6 +284,33 @@ class Map:
             str(self.cellCoordinate2Index(cell_row, cell_col)))
 
     """
+    Function:   get the cell content and return a uid list
+    Return:     put all the uid inside the cell in a list and return it 
+    """
+    def getCellContent(self, cell_col, cell_row):
+        pixcel_x_min = cell_col*self.CELL_LENGTH
+        pixcel_x_max = cell_col*(self.CELL_LENGTH) + self.CELL_LENGTH
+
+        pixcel_y_min = cell_row*self.CELL_LENGTH
+        pixcel_y_max = cell_row*(self.CELL_LENGTH) + self.CELL_LENGTH
+
+        uid_list = []
+
+        row_iter = pixcel_y_min
+        while(row_iter < pixcel_y_max):
+            col_iter = pixcel_x_min
+            while(col_iter < pixcel_x_max):
+                uid_list.append(self.map_data[self.coordinate2Index(
+                    row_iter, col_iter)].getUID())
+                col_iter += 1
+            row_iter += 1
+
+        return uid_list
+
+
+        
+
+    """
     Function:   lock the cell, put cell in to occupiedDict and set all pixcel's uid to occupier's UID
     Notes:      should only used by adjudicationCell()!
     """
@@ -401,6 +430,39 @@ class Map:
         json_map_data = json.dumps(map_list)
         
         return json_map_data
+
+    def readMapInCellJSON(self):
+
+        map_data = "[;;"
+
+        for cell_index in range(self.TOTAL_CELL):
+
+            cood = self.cellIndex2Coordinate(cell_index)
+            cell_row = cood[0]
+            cell_col = cood[1]
+
+
+            islock = self.getCellLock(cell_row,cell_col)
+
+            uid_list = self.getCellContent(cell_col, cell_row)
+
+            # cell_data_str = {'index': cell_index, 'islock': islock, 'loc': uid_list}
+
+            cell_data_str = '{"index": ' + str(cell_index) + ', "islock": ' + str(islock) + ', "loc": ' + str(uid_list) + '};;'
+
+            map_data +=cell_data_str
+
+        # map_data = map_data.strip(',')
+        map_data += ']'
+
+
+
+
+
+
+
+        
+        return map_data
 
 
 

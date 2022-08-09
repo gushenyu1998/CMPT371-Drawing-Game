@@ -108,4 +108,11 @@ print(map.readMapInUidLockListJSON())
 print("\n\n\n")
 json_str = "[{'UID': 1, 'draw_record': [1, 2], 'more': True}, {'UID': 1, 'draw_record': [2, 2], 'more': True}]"
 
+
+
+
 map.drawJSON(json_str)
+
+
+
+print(map.readMapInCellJSON())
