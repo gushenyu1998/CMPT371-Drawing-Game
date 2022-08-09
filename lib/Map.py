@@ -227,9 +227,9 @@ class Map:
     Function:   receive json string and call draw()
     """
     def drawJSON(self, ink_json):
-        ink_json = ink_json.replace("'",'"')
-        ink_json = ink_json.replace("True",'"True"')
-        ink_json = ink_json.replace("False",'"False"')
+        ink_json = str(ink_json).replace("'",'"')
+        ink_json = str(ink_json).replace("True",'"True"')
+        ink_json = str(ink_json).replace("False",'"False"')
         # print(ink_json)
         # print("\n\n\n")
         # print(json.loads(ink_json))

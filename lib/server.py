@@ -6,6 +6,9 @@ import json
 import time
 from fnmatch import fnmatch
 
+import Pixcel
+import Map
+
 import numpy as np
 
 TCP_PORT = 12005
@@ -18,6 +21,10 @@ def server():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((host, TCP_PORT))
     s.listen(5)
+
+    map = Map.Map(10,60,10)
+
+
     print('waiting for connection')
 
     def tcp_link(socket_thread = s, addr = None):
@@ -40,8 +47,13 @@ def server():
                     data_example.append(data_json)
                     print(data_json['more'])
                     if not data_json['more']:
+
+
                         with open('../json_file_example','w') as f:
                             f.write(str(data_example))
+
+                        map.drawJSON(data_example)
+                        map.printMap()
                         BreakFlag = False
         socket_thread.close()
         print('Connection from %s:%s closed.' % addr)
