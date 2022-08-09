@@ -197,7 +197,7 @@ class Painter:
                 data_json = json.loads(data_js)
                 client_update(data_json)
                 self.Draw_update(current_picture)
-        pass
+
 
 
 class TCP_client:
