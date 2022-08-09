@@ -3,29 +3,66 @@ import random
 import socket
 import threading
 import time
+from fnmatch import fnmatch
 
 import pygame as pg
 import math
 from pygame.locals import *
 import numpy as np
-
-# from lib import server
-
 from multiprocessing import Process
 
 Client_UID = 1
 color = (0, 0, 0)
 map_cell = 10
 cell_pixel_length = 60
+color_list = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
 
 TCP_Port = 12005
 server_host = 'localhost'
 
 draw_data = []
-current_picture = []
-lock_list = np.ones((map_cell * cell_pixel_length, map_cell * cell_pixel_length), dtype=int)
+UID_list = [0, 1, 2, 3, 4]
+current_picture = np.zeros((600, 600), dtype=int)
+lock_list = np.ones((10, 10), dtype=int)
 
 time_sleep = 3
+
+
+def delete_list_duplicate():
+    global draw_data
+    if draw_data is None:
+        draw_data = []
+    draw_data = [dict(t) for t in set([tuple(d.items()) for d in draw_data])]
+
+
+def client_update(cell=None, islock=True):
+    if cell is not None:
+        x_axis = (cell['index'] % 10) * 60
+        y_axis = int(cell['index'] / 10) * 60
+        k = 0
+        for i in range(60):
+            for j in range(60):
+                current_picture[x_axis + i][y_axis + j] = cell['loc'][k]
+                lock_list[int(x_axis / 60)][int(y_axis / 60)] = cell['islock']
+                k += 1
+
+
+def game_check():
+    Players = []
+    for UID in UID_list:
+        temp = UID_list.count(UID)
+        Players.append(temp / 360000)
+    return Players
+
+
+def check_win():
+    p = game_check()
+    nth_player = 0
+    for temp in p:
+        if temp >= 0.5:
+            return True, nth_player
+        nth_player += 1
+    return False, 0
 
 
 class Brush(object):
@@ -67,9 +104,19 @@ class Brush(object):
         return points
 
     def Draw(self, position):
+        paint_broad = 5
         if self.drawing:
             for p in self.get_line(position):
-                pg.draw.circle(self.screen, self.color, p, 5)
+                for x in range(-paint_broad, paint_broad):
+                    for y in range(-paint_broad, paint_broad):
+                        if abs(x) + abs(y) <= paint_broad:
+                            x_axis = p[0] + x
+                            y_axis = p[1] + y
+                            if lock_list[int(x_axis / 60)][int(y_axis / 60)]:
+                                pg.draw.circle(self.screen, self.color, (x_axis, y_axis), 1)
+                                message = {'UID': Client_UID, 'draw_record': (int(x_axis), int(y_axis)), 'more': True}
+                                draw_data.append(message)
+
         self.last_position = position
 
 
@@ -80,14 +127,12 @@ class Painter:
         self.clock = pg.time.Clock()
         self.screen = pg.display.set_mode(self.window, 0, 32)
         self.brush = Brush(self.screen)
-        self.map = None
         self.paint_size = 10
         self.sock = Sock
 
     def run(self):
         self.screen.fill((255, 255, 255))
-        self.game_init()
-        # self.game_update()
+        self.draw_game_line()
         print("Thread painter start")
         while True:
             self.clock.tick(600)
@@ -98,61 +143,60 @@ class Painter:
                         event.type == MOUSEMOTION or \
                         event.type == MOUSEBUTTONUP:
                     self.paint_judgement(position=event.pos, event_type=event.type)
-            if len(draw_data) > 1024:
-                while len(draw_data) != 0:
-                    message = draw_data.pop()
-                    sending = json.dumps(message)
-                    string = str(sending)+';'
-                    self.sock.send(string.encode())
+            if len(draw_data) > 10240:
+                delete_list_duplicate()
+                self.sending_data()
             pg.display.update()
 
-    def game_init(self):
+    def draw_game_line(self):
         block_x = 60
         block_y = 60
-
-        # if self.map is not None:
-        #     for i in range(600):
-        #         for j in range(600):
-        #             if self.map[i][j] == 1:
-        #                 pg.draw.rect(self.screen, (255, 0, 0), (i, j, 1, 1))
-
         for i in range(11):
             pg.draw.line(self.screen, (0, 0, 0), (i * block_y, 0), (i * block_y, 600), 3)
         for j in range(11):
             pg.draw.line(self.screen, (0, 0, 0), (0, j * block_x), (600, j * block_x), 3)
 
-    def game_update(self):
-        if self.map is not None:
+    def Draw_update(self, map=None):
+        if map is not None:
             for i in range(600):
                 for j in range(600):
-                    if self.map[i][j] == 1:
-                        pg.draw.rect(self.screen, (255, 0, 0), (i, j, 1, 1))
-                    elif self.map[i][j] == 2:
-                        pg.draw.rect(self.screen, (0, 255, 0), (i, j, 1, 1))
+                    pg.draw.rect(self.screen, color_list[map[i][j]], (i, j, 1, 1))
+        self.draw_game_line()
 
     def paint_judgement(self, position, event_type):
-        paint_broad = int(self.paint_size / 2)
-        for x in range(-paint_broad, paint_broad):
-            for y in range(-paint_broad, paint_broad):
-                x_axis = position[0] + x
-                y_axis = position[1] + y
-                if 1 < x_axis < 599 and 1 < y_axis < 599 and lock_list[x_axis][y_axis] == True:
-                    if event_type == MOUSEBUTTONDOWN:
-                        self.brush.start((x_axis, y_axis))
-                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': True}
-                        draw_data.append(message)
-                        return
-                    elif event_type == MOUSEMOTION:
-                        self.brush.Draw((x_axis, y_axis))
-                        if self.brush.drawing:
-                            message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': True}
-                            draw_data.append(message)
-                    elif event_type == MOUSEBUTTONUP:
-                        self.brush.close()
-                        message = {'UID': Client_UID, 'draw_record': (x_axis, y_axis), 'more': False}
-                        sending = ";"+json.dumps(message)+""
-                        for i in range(100):
-                            self.sock.send(sending.encode())
+        if event_type == MOUSEBUTTONDOWN:
+            self.brush.start(position)
+            message = {'UID': Client_UID, 'draw_record': position, 'more': True}
+            draw_data.append(message)
+        elif event_type == MOUSEMOTION:
+            self.brush.Draw(position)
+        elif event_type == MOUSEBUTTONUP:
+            self.brush.close()
+            message = {'UID': Client_UID, 'draw_record': position, 'more': False}
+            delete_list_duplicate()
+            for i in range(10):
+                draw_data.append(message)
+            print("mouse up triggered: \n", lock_list)
+
+            self.sending_data()
+
+    def sending_data(self):
+        while len(draw_data) != 0:
+            message = draw_data.pop()
+            sending = json.dumps(message)
+            string = str(sending) + ';'
+            self.sock.send(string.encode())
+        return
+
+    def receive_data(self):
+        data = self.sock.recv(10240).decode()
+        data_stock = data.split(';;')
+        while len(data_stock) != 0:
+            data_js = data_stock.pop()
+            if fnmatch(str(data_js), '{"index": *, "islock": *, "loc": *}'):
+                data_json = json.loads(data_js)
+                client_update(data_json)
+                self.Draw_update(current_picture)
 
 
 class TCP_client:

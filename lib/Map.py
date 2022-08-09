@@ -27,7 +27,7 @@ class Map:
                                                                             # each user will will it own queue nester in the adjudication_queue
                                                                             # adjudication_queue is like[[UID 1],[ UID 2],[ UID 3],[...]]
 
-        self.map_data = []                                                  # a list of pixcel store the map information
+        self.map_data = []                                                  # a temp_list of pixcel store the map information
         for i in range(self.MAP_SIZE):
             self.map_data.append(Pixcel.Pixcel())
 
@@ -167,14 +167,14 @@ class Map:
 
 
     """
-    Function:   receive the pixcel list and wrrite in to the map if the cell is not 
+    Function:   receive the pixcel temp_list and wrrite in to the map if the cell is not 
                 locked or occupied, than put this cell in to adjudication_queue for checking
 
     input:      pixcel row, pixcel col
     output:     cell index
     """
     def draw(self, ink):
-        # prevent the ink list is empty
+        # prevent the ink temp_list is empty
         if len(ink) == 0:
             return self.checkWin()
 
@@ -395,7 +395,7 @@ class Map:
 
 
     """
-    Function:   read the map data and return a list in [(UID)] format
+    Function:   read the map data and return a temp_list in [(UID)] format
     Return:      [(UID)]
     """
     def readMapInUidList(self):
@@ -408,7 +408,7 @@ class Map:
         return uid_list
 
     """
-    Function:   read the map data and return a list in [(UID, lock)] format
+    Function:   read the map data and return a temp_list in [(UID, lock)] format
     Return:      [(UID, lock)]
     """
     def readMapInUidLockList(self):
@@ -475,7 +475,7 @@ class Map:
     Function:   get the whole map data whith the format of (map_data, (winner_ID, True is game is end))
 
     return: (map_data, winner_info)
-            map_data is a list a pixcel
+            map_data is a temp_list a pixcel
             winner_info is (winner_id, True) if the gam is end
                         or (0, false) if the game is not ended
     """

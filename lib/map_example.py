@@ -19,7 +19,7 @@ map.printMap()
 
 
 # use draw() to write
-    #draw receive a list of pixcel
+    #draw receive a temp_list of pixcel
 
 ink = []
 ink.append(Pixcel.Pixcel(6, time.time(), False, False, 0, 0, True))
@@ -102,7 +102,7 @@ print("\n\n\n")
 print(map.readMapInUidLockListJSON())
 
 # it will return (pixcel_list[], winner_info)
-#pixcel_list is a list of pixcel
+#pixcel_list is a temp_list of pixcel
 #winner info have the same same with checkWin()
 
 print("\n\n\n")
