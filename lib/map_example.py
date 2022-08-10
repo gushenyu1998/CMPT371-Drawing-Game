@@ -116,3 +116,5 @@ map.drawJSON(json_str)
 
 
 print(map.readMapInCellJSON())
+
+map.adjudicationMap()

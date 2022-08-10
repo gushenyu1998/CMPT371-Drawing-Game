@@ -256,7 +256,6 @@ class Map:
         self.draw(ink)
 
 
-
     """
     Function:   unlock the cell and set all pixcel's uid to 0
     Notes:      should only used by adjudicationCell()!
@@ -306,9 +305,7 @@ class Map:
             row_iter += 1
 
         return uid_list
-
-
-        
+  
 
     """
     Function:   lock the cell, put cell in to occupiedDict and set all pixcel's uid to occupier's UID
@@ -393,6 +390,16 @@ class Map:
         else:
             self.freeCell(cell_col, cell_row)
 
+    """
+    Function:   run adjudicationCell for all the map
+    """
+    def adjudicationMap(self):
+        for i in range(self.TOTAL_CELL):
+            cell_row = self.cellIndex2Coordinate(i)[0]
+            cell_col = self.cellIndex2Coordinate(i)[1]
+
+            self.adjudicationCell(cell_col, cell_row)
+
 
     """
     Function:   read the map data and return a temp_list in [(UID)] format
@@ -431,6 +438,10 @@ class Map:
         
         return json_map_data
 
+    """
+    Function:   read the map data and return a json string
+    Return:     {'index': cell_index, 'islock': islock, 'loc': uid_list}
+    """
     def readMapInCellJSON(self):
 
         map_data = "[;;"
@@ -454,21 +465,7 @@ class Map:
 
         # map_data = map_data.strip(',')
         map_data += ']'
-
-
-
-
-
-
-
-        
         return map_data
-
-
-
-
-
-
 
 
     """

@@ -2,12 +2,19 @@ import json
 import socket
 import threading
 import time
+import queue
 from fnmatch import fnmatch
 
-from lib.Map import Map
-from lib.Map import Pixcel
+ 
+import Map
+import Pixcel
+# import lib.Map
+# from lib.Map import Map
+# from lib.Map import Pixcel
 
-import queue
+
+
+# from lib import Map
 
 
 class DrawGameServer:
@@ -26,8 +33,8 @@ class DrawGameServer:
         self.server.bind((self.host, port))
         self.server.listen()
 
-        self.receive_drawing_queue = queue()
-        self.map_send_queue = queue()
+        self.receive_drawing_queue = queue.Queue()
+        # self.map_send_queue = queue()
 
     def handle_client(self, client):
         while True:
@@ -112,7 +119,7 @@ class DrawGameServer:
                     map.drawJSON(self.receive_drawing_queue.get())
                     if (loop_counter >= drop_queue_red_line):
                         self.receive_drawing_queue = queue()
-                        #need to add force to judge map
+                        map.adjudicationMap()       #force to judge map
                         break
                     loop_counter += 1
 
@@ -127,6 +134,9 @@ class DrawGameServer:
     def run(self):
         print('Server is starting ...')
         self.negotiateUID()
+        time.sleep(1)
+        print('Game in running ...')
+        self.inGame()
 
 if __name__ == "__main__":
     game_server = DrawGameServer(59000,3)
