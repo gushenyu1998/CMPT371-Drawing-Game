@@ -72,6 +72,8 @@ class DrawGameServer:
     def broadcast(self, message):
         for client in self.clients:
             client.send(message)
+            # print(message)
+
 
 
     def negotiateUID(self):
@@ -79,8 +81,8 @@ class DrawGameServer:
 
             # have enough play, send start game and exit the function 
             if self.current_uid == self.max_uid:
-                time.sleep(3)
-                self.broadcast("GAMESTART".encode('utf-8'))
+                # time.sleep(3)
+                # self.broadcast("GAMESTART".encode('utf-8'))
                 print("Negotiate UID finish.")
                 return
 

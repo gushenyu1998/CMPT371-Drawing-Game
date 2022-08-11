@@ -8,69 +8,40 @@ from fnmatch import fnmatch
 
 import Pixcel
 import Map
-
+import random
 import numpy as np
 
-TCP_PORT = 12005
+TCP_PORT = 59000
 host = 'localhost'
 
 data_stock = []
 data_example = []
+
 
 def server():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((host, TCP_PORT))
     s.listen(5)
 
-    map = Map.Map(10,60,10)
-
-
     print('waiting for connection')
 
-    def tcp_link(socket_thread = s, addr = None):
+    def tcp_link(socket_thread=s, addr=None):
         print('Accept new connection from %s:%s' % addr)
         socket_thread.send('connect success!'.encode())
-        BreakFlag = True
-
-        ## 55 or others
-        while BreakFlag:
-            data = socket_thread.recv(1024).decode()
-            data_stock = data.split(';')
-            while len(data_stock) != 0:
-                data_js= data_stock.pop()
-                # print("\n\n\ndata_js",data_js)
-                if fnmatch(str(data_js),'{"UID": *, "draw_record": *, "more": *}'):
-
-                    # print("=================fnmatch\n")
-                    # return
-                    data_json = json.loads(data_js)
-                    data_example.append(data_json)
-                    print(data_json['more'])
-                    if not data_json['more']:
-
-
-                        with open('../json_file_example','w') as f:
-                            f.write(str(data_example))
-
-                        map.drawJSON(data_example)
-                        # map.printMap()
-                        BreakFlag = False
-        socket_thread.close()
-        print('Connection from %s:%s closed.' % addr)
-
+        while True:
+            for i in range(2500):
+                a = {"index": i, "loc": [random.randint(0, 4)]}
+                send = json.dumps(a)+";;"
+                socket_thread.send(send.encode())
+            for i in range(2500):
+                a = {"index": i, "loc": [0]}
+                send = json.dumps(a)+";;"
+                socket_thread.send(send.encode())
 
     sock, addr = s.accept()
     tcp_link(sock, addr)
 
+
 if __name__ == '__main__':
-    server()
-    #print(len('{"UID": 1, "draw_record": [287, 233], "more": true}'))
-
-
-
-
-
-
-
-
-
+    for i in range(-1,2): print(i)
+    # print(len('{"UID": 1, "draw_record": [287, 233], "more": true}'))
