@@ -43,12 +43,12 @@ class DrawGameServer:
             try:
                 while True:
                     self.client_recever(client)
-            except:
-                print("there is an error with ", client)
+            except Exception as e:
+                print("there is an error, detail: ", repr(e))
                 break
 
     def client_recever(self, client):
-        receive_data = ""
+        receive_data = []
         while True:
             try:
                 while True:
@@ -56,21 +56,19 @@ class DrawGameServer:
                     data_stock = data.split(';')
                     while len(data_stock) != 0:
                         data_js= data_stock.pop()
-                        # print("\n\n\ndata_js",data_js)
-                        if fnmatch(str(data_js),'{"UID": *, "draw_record": *, "more": *}'):
+                        if fnmatch(str(data_js),'{"UID":*,"draw_record":*,"more": *}'):
 
                             data_json = json.loads(data_js)
                             receive_data.append(data_json)
-                            
-                            # print(data_json['more'])
+                            print(data_json)
 
                             if not data_json['more']:
                                 self.lock.acquire()
                                 self.receive_drawing_queue.put(receive_data)
                                 self.lock.release()
-                                receive_data = ""
-            except:
-                print("there is an error with ", client)
+                                receive_data = []
+            except Exception as e:
+                print("Client handel exception", repr(e))
                 break
 
     def broadcast(self, message):
@@ -97,8 +95,9 @@ class DrawGameServer:
 
             print("Assign uid", new_play_uid)
 
-            send_uid_data = '{"PID": ' + str(new_play_uid) +'}'
-            client.send(send_uid_data.encode('utf-8'))
+            send_uid_data = ';;{"PID": ' + str(new_play_uid) +'};;'
+            for i in range(2):
+                client.send(send_uid_data.encode('utf-8'))
 
             self.clients.append(client)
             self.clients_address.append(address)
@@ -143,6 +142,6 @@ class DrawGameServer:
         self.inGame()
 
 if __name__ == "__main__":
-    game_server = DrawGameServer(59000,3)
+    game_server = DrawGameServer(59000,1)
     game_server.run()
     # run()

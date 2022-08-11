@@ -1,11 +1,9 @@
 import json
 import math
-import random
 import socket
+import threading
 import time
 from fnmatch import fnmatch
-from multiprocessing import Process, Queue
-import server
 import numpy as np
 import pygame as pg
 from pygame.locals import *
@@ -16,7 +14,7 @@ map_cell = 10
 cell_pixel_length = 60
 color_list = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
 
-TCP_Port = 12005
+TCP_Port = 59000
 server_host = 'localhost'
 
 draw_data = []
@@ -51,18 +49,17 @@ def client_update(cell=None):
 
 
 def game_check():
-    # Players = []
-    # for UID in UID_list:
-    #     if UID == 0:
-    #         continue
-    #     temp = (np.sum(current_picture == UID)) / 360000
-    #     Players.append({'UID': UID, 'percentage': temp})
-
-    test = [{'UID': 1, 'percentage': 0.1},
-            {'UID': 2, 'percentage': 0.2},
-            {'UID': 3, 'percentage': int(time.time())},
-            {'UID': 4, 'percentage': 0.3}]
-    new = sorted(test, key=lambda k: k.__getitem__('percentage'))
+    Players = []
+    for UID in UID_list:
+        if UID == 0:
+            continue
+        temp = (np.sum(current_picture == UID)) / 360000
+        Players.append({'UID': UID, 'percentage': temp})
+    # test = [{'UID': 1, 'percentage': 0.1},
+    #         {'UID': 2, 'percentage': 0.2},
+    #         {'UID': 3, 'percentage': int(time.time())},
+    #         {'UID': 4, 'percentage': 0.3}]
+    new = sorted(Players, key=lambda k: k.__getitem__('percentage'))
     return new
 
 
@@ -123,11 +120,7 @@ class Brush(object):
                         if abs(x) + abs(y) <= paint_broad:
                             x_axis = p[0] + x
                             y_axis = p[1] + y
-                            if x_axis >= 600 or y_axis>=600:
-                                pass
-
-
-                            if lock_list[int(x_axis / 60)-3][int(y_axis / 60)-3]:
+                            if lock_list[int(x_axis / 60) - 3][int(y_axis / 60) - 3]:
                                 pg.draw.circle(self.screen, self.color, (x_axis, y_axis), 1)
                                 message = {'UID': Client_UID, 'draw_record': (int(x_axis), int(y_axis)), 'more': True}
                                 draw_data.append(message)
@@ -190,13 +183,12 @@ class Painter:
                 self.brush.Draw(position)
             elif event_type == MOUSEBUTTONUP:
                 self.brush.close()
-                message = {'UID': Client_UID, 'draw_record': (min(position[0],600),min(position[1],600)), 'more': False}
+                message = {'UID': Client_UID, 'draw_record': (min(position[0], 600), min(position[1], 600)),
+                           'more': False}
                 delete_list_duplicate()
                 for i in range(10):
                     draw_data.append(message)
-                # print("mouse up triggered: \n", lock_list)
                 self.sending_data()
-
 
     def sending_data(self):
         while len(draw_data) != 0:
@@ -214,8 +206,8 @@ class Painter:
 
         game_text1 = player1.format(game_proccess[0]['UID'], game_proccess[0]['percentage'])
         font_t = pg.font.SysFont('arial', 30)
-        text = font_t.render(game_text1,True,(0, 0, 0))
-        self.screen.blit(text, (20,620))
+        text = font_t.render(game_text1, True, (0, 0, 0))
+        self.screen.blit(text, (20, 620))
 
         game_text2 = player2.format(game_proccess[1]['UID'], game_proccess[1]['percentage'])
         font_t = pg.font.SysFont('arial', 30)
@@ -248,30 +240,71 @@ class TCP_client:
     def get_painter(self):
         return self.Painter
 
+    def client_draw_panel(self, a = None):
+        self.Painter.run()
+
     def receive_message(self):
         while True:
-            time.sleep(0.1)
-            data = self.sock.recv(1024).decode()
-            data_stock = data.split(';;')
+            data_stock = []
+            try:
+                data = self.sock.recv(1024).decode()
+                data_stock = data.split(';;')
+            except Exception as e:
+                print('receive message error, detail:', repr(e))
+                self.sock.close()
             while len(data_stock) != 0:
                 data_js = data_stock.pop()
                 if fnmatch(str(data_js), '{"index": *, "islock": *, "loc": *}'):
                     data_json = json.loads(data_js)
-                    client_update(data_json)
-                    self.Painter.Draw_update(current_picture)
-                if fnmatch(str(data_js), '{"UID":*, "color":*}'):
-                    data_json = json.loads(data_js)
-                    Client_UID = data_json['UID']
-                    color = data_json['color']
+                    # client_update(data_json)
+                    # self.Painter.Draw_update(current_picture)
+                    print(data_json)
+
+    def build_player(self):
+        try:
+            loop_time_out = 1000
+            global Client_UID
+            global color
+            while loop_time_out >= 0:
+                loop_time_out -= 1
+                time.sleep(0.1)
+                try:
+                    data = self.sock.recv(125).decode()
+                finally:
+                    print("Building Client......")
+                data_stock = data.split(';;')
+                while len(data_stock) != 0:
+                    data_js = data_stock.pop()
+                    if fnmatch(str(data_js), '{"PID": *}'):
+                        data_json = json.loads(data_js)
+                        Client_UID = data_json['PID']
+                        color = color_list[Client_UID]
+                        print("Build Client Success......., ")
+                        print("Client UID is {}, color is: {}".format(Client_UID,color))
+                        for i in range(100):
+                            self.sock.send("{'UID': 1, 'draw_record': [344, 247], 'more': False}")
+                        return
+
+        except:
+            print('Build client error')
+
+    # def sender_test(self):
+    #     while True:
+    #         time.sleep(0.1)
+    #         try:
+    #             self.sock.send('{"UID":1,"draw_record":(10,10),"more":False};'.encode())
+    #             print('{"UID": 1,"draw_record": (10,10),"more": False};')
+    #         except Exception as e:
+    #             print(repr(e))
 
     def run(self):
-        global color
-        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        self.Painter.run()
-
-
-def server_run_proccess():
-    server.server()
+        self.build_player()
+        th1 = threading.Thread(target=self.receive_message)
+        th2 = threading.Thread(target=self.Painter.run(), args=(self.Painter,))
+        th1.start()
+        th2.start()
+        th1.join()
+        th2.join()
 
 
 def client_run_proccess():
@@ -279,12 +312,5 @@ def client_run_proccess():
     app = TCP_client()
     app.run()
 
-
 if __name__ == '__main__':
-    q = Queue(2)
-    p2 = Process(target=server_run_proccess)
-    p1 = Process(target=client_run_proccess)
-    p1.start()
-    p2.start()
-    p1.join()
-    p2.join()
+    client_run_proccess()

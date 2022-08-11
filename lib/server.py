@@ -53,7 +53,7 @@ def server():
                             f.write(str(data_example))
 
                         map.drawJSON(data_example)
-                        map.printMap()
+                        # map.printMap()
                         BreakFlag = False
         socket_thread.close()
         print('Connection from %s:%s closed.' % addr)
