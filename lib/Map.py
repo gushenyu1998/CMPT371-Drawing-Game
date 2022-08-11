@@ -203,6 +203,12 @@ class Map:
             if pixcel_index >= self.MAP_SIZE :
                 continue
 
+            if pixcel_col >= self.MAP_LENGTH_IN_PIXCEL :
+                continue
+
+            if pixcel_row >= self.MAP_LENGTH_IN_PIXCEL :
+                continue
+
             cell_index = self.pixcelCoordinate2CellIndex(pixcel_row, pixcel_col)
 
             cell_row = self.cellIndex2Coordinate(cell_index)[0]
