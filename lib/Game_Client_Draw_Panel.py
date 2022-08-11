@@ -75,6 +75,7 @@ def check_win():
 
 class Brush(object):
     def __init__(self, screen):
+        global color
         self.color = color
         self.screen = screen
         self.drawing = False
@@ -121,7 +122,7 @@ class Brush(object):
                             x_axis = p[0] + x
                             y_axis = p[1] + y
                             if lock_list[int(x_axis / 60) - 3][int(y_axis / 60) - 3]:
-                                pg.draw.circle(self.screen, self.color, (x_axis, y_axis), 1)
+                                pg.draw.circle(self.screen, color, (x_axis, y_axis), 1)
                                 message = {'UID': Client_UID, 'draw_record': (int(x_axis), int(y_axis)), 'more': True}
                                 draw_data.append(message)
 
@@ -181,6 +182,7 @@ class Painter:
                 draw_data.append(message)
             elif event_type == MOUSEMOTION:
                 self.brush.Draw(position)
+                self.draw_game_line()
             elif event_type == MOUSEBUTTONUP:
                 self.brush.close()
                 message = {'UID': Client_UID, 'draw_record': (min(position[0], 600), min(position[1], 600)),
@@ -244,7 +246,9 @@ class TCP_client:
         self.Painter.run()
 
     def receive_message(self):
+
         while True:
+            print("Receive Thread")
             data_stock = []
             try:
                 data = self.sock.recv(1024).decode()
@@ -254,10 +258,12 @@ class TCP_client:
                 self.sock.close()
             while len(data_stock) != 0:
                 data_js = data_stock.pop()
+                print(data_js)
                 if fnmatch(str(data_js), '{"index": *, "islock": *, "loc": *}'):
                     data_json = json.loads(data_js)
-                    # client_update(data_json)
-                    # self.Painter.Draw_update(current_picture)
+                    client_update(data_json)
+                    print(data_json['index'])
+                    self.Painter.Draw_update(current_picture)
                     print(data_json)
 
     def build_player(self):
@@ -282,27 +288,20 @@ class TCP_client:
                         print("Build Client Success......., ")
                         print("Client UID is {}, color is: {}".format(Client_UID,color))
                         for i in range(100):
-                            self.sock.send("{'UID': 1, 'draw_record': [344, 247], 'more': False}")
+                            self.sock.send('{"UID": 1, "draw_record": [344, 247], "more": False}'.encode())
                         return
 
         except:
             print('Build client error')
 
-    # def sender_test(self):
-    #     while True:
-    #         time.sleep(0.1)
-    #         try:
-    #             self.sock.send('{"UID":1,"draw_record":(10,10),"more":False};'.encode())
-    #             print('{"UID": 1,"draw_record": (10,10),"more": False};')
-    #         except Exception as e:
-    #             print(repr(e))
-
     def run(self):
         self.build_player()
         th1 = threading.Thread(target=self.receive_message)
-        th2 = threading.Thread(target=self.Painter.run(), args=(self.Painter,))
         th1.start()
+
+        th2 = threading.Thread(target=self.Painter.run(), args=(self.Painter,))
         th2.start()
+
         th1.join()
         th2.join()
 

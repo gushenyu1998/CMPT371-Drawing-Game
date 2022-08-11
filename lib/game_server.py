@@ -44,7 +44,7 @@ class DrawGameServer:
                 while True:
                     self.client_recever(client)
             except Exception as e:
-                print("there is an error, detail: ", repr(e))
+                # print("there is an error, detail: ", repr(e))
                 break
 
     def client_recever(self, client):
@@ -56,19 +56,17 @@ class DrawGameServer:
                     data_stock = data.split(';')
                     while len(data_stock) != 0:
                         data_js= data_stock.pop()
-                        if fnmatch(str(data_js),'{"UID":*,"draw_record":*,"more": *}'):
+                        if fnmatch(str(data_js), '{"UID": *, "draw_record": *, "more": *}'):
 
                             data_json = json.loads(data_js)
                             receive_data.append(data_json)
-                            print(data_json)
-
                             if not data_json['more']:
                                 self.lock.acquire()
                                 self.receive_drawing_queue.put(receive_data)
                                 self.lock.release()
                                 receive_data = []
             except Exception as e:
-                print("Client handel exception", repr(e))
+                # print("Client handel exception", repr(e))
                 break
 
     def broadcast(self, message):
