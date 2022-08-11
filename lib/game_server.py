@@ -127,10 +127,17 @@ class DrawGameServer:
             else:
                 #send map
                 switch = not switch
-                map_data_str = map.readMapInCellJSON()
 
-                map_data_str = map_data_str.encode('utf-8')
-                self.broadcast(map_data_str)
+                map_data_pixcel_str = map.readMapInPixcelJSON()
+                map_data_pixcel_str = map_data_pixcel_str.encode('utf-8')
+                self.broadcast(map_data_pixcel_str)
+
+                map_data_cell_lock_str = map.readMapInCellLockJSON()
+                map_data_cell_lock_str = map_data_cell_lock_str.encode('utf-8')
+                self.broadcast(map_data_cell_lock_str)
+                self.broadcast(map_data_cell_lock_str)
+
+                
 
     def run(self):
         print('Server is starting ...')
