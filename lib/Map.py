@@ -197,7 +197,14 @@ class Map:
 
             pixcel_row = ink[i].getRow()
             pixcel_col = ink[i].getCol()
+
+            pixcel_index = self.pixcelCoordinate2CellIndex(pixcel_row,pixcel_col)
+
+            if pixcel_index >= self.MAP_SIZE :
+                continue
+
             cell_index = self.pixcelCoordinate2CellIndex(pixcel_row, pixcel_col)
+
             cell_row = self.cellIndex2Coordinate(cell_index)[0]
             cell_col = self.cellIndex2Coordinate(cell_index)[1]
 
