@@ -491,7 +491,7 @@ class Map:
             uid_list.append(self.getPixcel(pixcel_row,pixcel_col).getUID())
             # cell_data_str = {'index': cell_index, 'islock': islock, 'loc': uid_list}
 
-            pixcel_data_str = '{"index": ' + str(pixcel_index) + ', "islock": ' + str(islock) + ', "loc": ' + str(uid_list) + '};;'
+            pixcel_data_str = '{"index": ' + str(pixcel_index) +', "loc": ' + str(uid_list) + '};;'
 
             map_data +=pixcel_data_str
 
