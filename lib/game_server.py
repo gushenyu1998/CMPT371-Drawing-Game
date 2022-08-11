@@ -104,7 +104,7 @@ class DrawGameServer:
             thread.start()
     
     def inGame(self):
-        map = Map.Map(10,60,10)
+        map = Map.Map(10,10,10)
 
         drop_queue_red_line = 1000              # if run this amount time the queue still not empty will drop queue 
 
