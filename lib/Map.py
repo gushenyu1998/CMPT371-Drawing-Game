@@ -44,6 +44,11 @@ class Map:
     def coordinate2Index(self, row, col):
         return row * self.MAP_LENGTH_IN_PIXCEL + col
 
+    def pixcelIndex2Coordinate(self, pixcel_index):
+        pixcel_row = int(int(pixcel_index) / int(self.MAP_LENGTH_IN_PIXCEL))
+        pixcel_col = int(int(pixcel_index) % int(self.MAP_LENGTH_IN_PIXCEL))
+        return (pixcel_row, pixcel_col)
+
     """
     Function:   convert cell coordinate in to the index in map_data
 
@@ -467,6 +472,60 @@ class Map:
         map_data += ']'
         return map_data
 
+    """
+    Function:   read the map data and return a json string
+    Return:     {'index': pixcel_index, 'islock': islock, 'loc': [uid]}
+    """
+    def readMapInPixcelJSON(self):
+
+        map_data = "[;;"
+
+        for pixcel_index in range(self.MAP_SIZE):
+
+            pixcel_row = self.pixcelIndex2Coordinate(pixcel_index)[0]
+            pixcel_col = self.pixcelIndex2Coordinate(pixcel_index)[1]
+
+            islock = self.getPixcel(pixcel_row,pixcel_col).getLock()
+            uid_list = []
+
+            uid_list.append(self.getPixcel(pixcel_row,pixcel_col).getUID())
+            # cell_data_str = {'index': cell_index, 'islock': islock, 'loc': uid_list}
+
+            pixcel_data_str = '{"index": ' + str(pixcel_index) + ', "islock": ' + str(islock) + ', "loc": ' + str(uid_list) + '};;'
+
+            map_data +=pixcel_data_str
+
+        # map_data = map_data.strip(',')
+        map_data += ']'
+        return map_data
+
+
+    """
+    Function:   read the map data and return a json string
+    Return:     {'index': cell_index, 'islock': islock, 'loc': [uid]}
+    """
+    def readMapInCellLockJSON(self):
+
+        map_data = "[;;"
+
+        for cell_index in range(self.TOTAL_CELL):
+
+            cood = self.cellIndex2Coordinate(cell_index)
+            cell_row = cood[0]
+            cell_col = cood[1]
+
+
+            islock = self.getCellLock(cell_row,cell_col)
+
+
+            # cell_data_str = {'index': cell_index, 'islock': islock, 'loc': uid_list}
+
+            cell_data_str = '{"index": ' + str(cell_index) + ', "islock": ' + str(islock) + '};;'
+
+            map_data +=cell_data_str
+        # map_data = map_data.strip(',')
+        map_data += ']'
+        return map_data
 
     """
     Function:   get the whole map data whith the format of (map_data, (winner_ID, True is game is end))
