@@ -262,14 +262,24 @@ class Map:
 
         ink = []
 
+        # print("jsondata:")
+        # print(str(json_data))
+        
         for i in range(len(json_data)):
             # print(json_data[i]["UID"])
             # print(json_data[i]["draw_record"])
             # print(json_data[i]["more"])
-            ink.append(Pixcel.Pixcel(json_data[i]["UID"], time.time(), False, False, json_data[i]["draw_record"][0], json_data[i]["draw_record"][1], json_data[i]["more"] == "True"))
-
+            # print("jsonfata_read\n\n",json_data[i]["draw_record"][1], json_data[i]["draw_record"][0])
+            ink.append(Pixcel.Pixcel(json_data[i]["UID"], time.time(), False, False, int(json_data[i]["draw_record"][1]), int(json_data[i]["draw_record"][0]), json_data[i]["more"] == "True"))
+            # ^ update switch row col
 
         # print(ink)
+
+        # print("\nink\n\n",str(ink))
+
+
+        # for i in range(len(ink)):
+        #     print(ink[i].getCoordinate())
 
         self.draw(ink)
 
