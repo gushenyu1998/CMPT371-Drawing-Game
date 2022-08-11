@@ -36,6 +36,8 @@ class DrawGameServer:
         self.receive_drawing_queue = queue.Queue()
         # self.map_send_queue = queue()
 
+        self.lock = threading.Lock()
+
     def handle_client(self, client):
         while True:
             try:
@@ -63,7 +65,9 @@ class DrawGameServer:
                             # print(data_json['more'])
 
                             if not data_json['more']:
+                                self.lock.acquire()
                                 self.receive_drawing_queue.put(receive_data)
+                                self.lock.release()
                                 receive_data = ""
             except:
                 print("there is an error with ", client)
