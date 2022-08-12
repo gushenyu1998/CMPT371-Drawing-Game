@@ -143,7 +143,6 @@ class DrawGameServer:
                             message_pixel = json.dumps(sending_pixel) + ";;"
                             for i in range(5):
                                 self.broadcast(message_pixel.encode())
-                                time.sleep(0.01)
 
                 else:
                     UID_lock = np.where(self.lock_list == UID)
@@ -155,14 +154,12 @@ class DrawGameServer:
                             self.cell_fill_out(0, (lock_row[i] * 5, lock_col[i] * 5))
                             sending_pixel = {"Lock": 0, "loc": (int(lock_row[i]), int(lock_col[i]))}
                             message_pixel = json.dumps(sending_pixel) + ";;"
-                            for k in range(2):
+                            for k in range(5):
                                 self.broadcast(message_pixel.encode())
-                                time.sleep(0.01)
                             clean_cell = {"UID_cell": 0, "loc": (int(lock_row[i] * 5), int(lock_col[i] * 5))}
                             clean_message = json.dumps(clean_cell) + ";;"
                             for i in range(2):
                                 self.broadcast(clean_message.encode())
-                                time.sleep(0.01)
 
 
         except Exception as e:
