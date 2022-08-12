@@ -12,7 +12,7 @@ Client_UID = 1
 color = (255, 0, 0)
 map_cell = 10
 cell_pixel_length = 60
-color_list = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
+color_list = [(255, 255, 255, 255), (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255), (255, 255, 0, 255)]
 
 TCP_Port = 59000
 server_host = 'localhost'
@@ -20,9 +20,9 @@ server_host = 'localhost'
 draw_data = []
 UID_list = [0, 1, 2, 3, 4]
 current_picture = np.zeros((50, 50), dtype=int)
-lock_list = np.ones((10, 10), dtype=int)
+lock_list = np.zeros((10, 10), dtype=int)
 
-text_game = "Your color is: {}\n"
+text_game = "Your color is: {}"
 player1 = "First player is: Player{}, {}"
 player2 = "Second player is: Player{}, {}"
 player3 = "Third player is: Player{}, {}"
@@ -38,9 +38,17 @@ def delete_list_duplicate():
 
 def client_update(pixel=None, UID=0):
     if pixel is not None:
-        x_axis = (pixel % 50)
-        y_axis = int(pixel / 50)
+        x_axis = pixel[0]
+        y_axis = pixel[1]
         current_picture[x_axis][y_axis] = UID
+
+def client_update_cell(pixel=None, UID=0):
+    if pixel is not None:
+        x_axis = pixel[0]
+        y_axis = pixel[1]
+        for i in range(5):
+            for j in range(5):
+                current_picture[x_axis+i][y_axis+j] = UID
 
 
 def game_check():
@@ -98,16 +106,18 @@ class Brush(object):
         return points
 
     def Draw(self, position):
-        paint_broad = 6
         if self.drawing:
             for p in self.get_line(position):
-                for x in range(-paint_broad, paint_broad):
-                    for y in range(-paint_broad, paint_broad):
-                        if abs(x) + abs(y) <= paint_broad:
-                            x_axis = p[0] + x
-                            y_axis = p[1] + y
-                            if lock_list[min(int(x_axis / 60), 9)][min(int(y_axis / 60), 9)]:
-                                pg.draw.circle(self.screen, color, (x_axis, y_axis), 1)
+                x_axis_lock = min(int(p[0] / 60), 9)
+                y_axis_lock = min(int(p[1] / 60), 9)
+                x_axis = int(p[0] / 12) * 12
+                y_axis = int(p[1] / 12) * 12
+
+                if lock_list[x_axis_lock][y_axis_lock] == 0 or \
+                        lock_list[x_axis_lock][y_axis_lock] == Client_UID:
+                    message = {'UID': Client_UID, 'draw_record': (int(p[0] / 12), int(p[1] / 12)), 'more': True}
+                    draw_data.append(message)
+                    pg.draw.rect(self.screen, color, (x_axis, y_axis, 12, 12))
 
         self.last_position = position
 
@@ -128,7 +138,7 @@ class Painter:
         self.draw_game_line()
 
         while True:
-            self.clock.tick(1800)
+            self.clock.tick(600)
             for event in pg.event.get():
                 if event.type == QUIT:
                     exit()
@@ -137,8 +147,8 @@ class Painter:
                         event.type == MOUSEBUTTONUP:
                     self.paint_judgement(position=event.pos, event_type=event.type)
             self.text_update()
-            if len(draw_data) > 10:
-                self.sending_data()
+            delete_list_duplicate()
+            self.sending_data()
             pg.display.update()
 
     def draw_game_line(self):
@@ -151,31 +161,37 @@ class Painter:
 
     def Draw_update(self, pxiel=None, UID=0):
         if pxiel is not None:
-            x_axis = pxiel % 50
-            y_axis = int(pxiel / 50)
-            pg.draw.rect(self.screen, color_list[UID], (x_axis*12, y_axis*12, 12, 12))
+            x_axis = pxiel[0]
+            y_axis = pxiel[1]
+            # if self.screen.get_at((x_axis, y_axis)) == (255, 255, 255, 255) or \
+            #         self.screen.get_at((x_axis, y_axis)) == color_list[UID]:
+            #     return
+            pg.draw.rect(self.screen, color_list[UID], (x_axis * 12, y_axis * 12, 12, 12))
+            self.draw_game_line()
+
+    def Cell_update(self, pxiel=None, UID=0):
+        if pxiel is not None:
+            x_axis = pxiel[0]
+            y_axis = pxiel[1]
+            pg.draw.rect(self.screen, color_list[UID], (x_axis * 12, y_axis * 12, 60, 60))
             self.draw_game_line()
 
     def paint_judgement(self, position, event_type):
-        x = int(position[0]/12)
-        y = int(position[1]/12)
+        x = int(position[0] / 12)
+        y = int(position[1] / 12)
         if position[0] <= 600 or position[1] <= 600:
             if event_type == MOUSEBUTTONDOWN:
                 self.brush.start(position)
-                message = {'UID': Client_UID, 'draw_record': (x,y), 'more': True}
+                message = {'UID': Client_UID, 'draw_record': (x, y), 'more': True}
                 draw_data.append(message)
             elif event_type == MOUSEMOTION:
                 self.brush.Draw(position)
                 self.draw_game_line()
-                for i in range(-1,3):
-                    for j in range(-1,3):
-                        message = {'UID': Client_UID, 'draw_record': (x+i,y+i), 'more': True}
-                        draw_data.append(message)
             elif event_type == MOUSEBUTTONUP:
                 self.brush.close()
-                message = {'UID': Client_UID, 'draw_record': (min(x,50), min(y,50)), 'more': False}
+                message = {'UID': Client_UID, 'draw_record': (min(x, 50), min(y, 50)), 'more': False}
                 delete_list_duplicate()
-                for i in range(10):
+                for i in range(3):
                     draw_data.append(message)
                 self.sending_data()
 
@@ -193,22 +209,22 @@ class Painter:
         self.screen.blit(rect, (0, 600))
         game_proccess = game_check()
 
-        game_text1 = player1.format(game_proccess[0]['UID'], game_proccess[0]['percentage'])
+        game_text1 = player1.format(game_proccess[0]['UID'], "%.2f%%" %(game_proccess[0]['percentage']*100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text1, True, (0, 0, 0))
         self.screen.blit(text, (20, 620))
 
-        game_text2 = player2.format(game_proccess[1]['UID'], game_proccess[1]['percentage'])
+        game_text2 = player2.format(game_proccess[1]['UID'], "%.2f%%" %(game_proccess[1]['percentage']*100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text2, True, (0, 0, 0))
         self.screen.blit(text, (20, 660))
 
-        game_text3 = player3.format(game_proccess[2]['UID'], game_proccess[2]['percentage'])
+        game_text3 = player3.format(game_proccess[2]['UID'], "%.2f%%" %(game_proccess[2]['percentage']*100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text3, True, (0, 0, 0))
         self.screen.blit(text, (20, 700))
 
-        game_text4 = player4.format(game_proccess[3]['UID'], game_proccess[3]['percentage'])
+        game_text4 = player4.format(game_proccess[3]['UID'], "%.2f%%" %(game_proccess[3]['percentage']*100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text4, True, (0, 0, 0))
         self.screen.blit(text, (20, 740))
@@ -219,6 +235,7 @@ class TCP_client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((server_host, TCP_Port))
         connection = self.sock.recv(1024).decode()
+        self.last_message = ""
         print(connection)
         if len(connection) != 0:
             self.Painter = Painter(self.sock)
@@ -236,27 +253,35 @@ class TCP_client:
         while True:
             data_stock = []
             try:
-                data = self.sock.recv(10240).decode()
+                data = self.sock.recv(1024).decode()
                 data_stock = data.split(';;')
-
             except Exception as e:
                 print('receive message error, detail:', repr(e))
                 self.sock.close()
+            if len(data_stock) > 0:
+                temp = data_stock[0]+self.last_message
+                data_stock.insert(0,temp)
+                self.last_message = data_stock[-1]
+
             while len(data_stock) != 0:
                 data_js = data_stock.pop(0)
-                if fnmatch(str(data_js), '{"index": *, "loc": *}'):
+                if fnmatch(str(data_js), '{"UID": *, "loc": *}'):
                     data_json = json.loads(data_js)
-                    client_update(data_json['index'], data_json['loc'][0])
-                    self.Painter.Draw_update(data_json['index'], data_json['loc'][0])
-                if fnmatch(str(data_js), '{"cell_coordinate": *, "islock": *}'):
+                    client_update(data_json['loc'], data_json['UID'])
+                    self.Painter.Draw_update(data_json['loc'], data_json['UID'])
+                if fnmatch(str(data_js), '{"Lock": *, "loc": *}'):
                     data_json = json.loads(data_js)
-                    i = data_json['cell_coordinate']
-                    x = i % 60
-                    y = int(i / 60)
-                    if data_json['islock']:
-                        lock_list[x][y] = 0
+                    i = data_json['loc']
+                    x = i[0]
+                    y = i[1]
+                    if data_json['Lock']:
+                        lock_list[x][y] = data_json["Lock"]
                     else:
-                        lock_list[x][y] = 1
+                        lock_list[x][y] = 0
+                if fnmatch(str(data_js), '{"UID_cell": *, "loc": *}'):
+                    data_json = json.loads(data_js)
+                    client_update_cell(data_json['loc'], data_json['UID_cell'])
+                    self.Painter.Cell_update(data_json['loc'], data_json['UID_cell'])
 
     def build_player(self):
         try:
@@ -279,8 +304,8 @@ class TCP_client:
                         color = color_list[Client_UID]
                         print("Build Client Success......., ")
                         print("Client UID is {}, color is: {}".format(Client_UID, color))
-                        for i in range(10):
-                            self.sock.send('{"UID": 1, "draw_record": [344, 247], "more": False}'.encode())
+                        # for i in range(10):
+                        #     self.sock.send('{"UID": 1, "draw_record": [1, 1], "more": False}'.encode())
                         return
 
         except:
