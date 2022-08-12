@@ -11,16 +11,16 @@ from pygame.locals import *
 Client_UID = 1
 color = (255, 0, 0)
 map_cell = 10
-cell_pixel_length = 60
+cell_pixel_length = 75
 color_list = [(255, 255, 255, 255), (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255), (255, 255, 0, 255)]
 
-TCP_Port = 59000
+TCP_Port = 9006
 server_host = 'localhost'
 
 draw_data = []
 UID_list = [0, 1, 2, 3, 4]
-current_picture = np.zeros((50, 50), dtype=int)
-lock_list = np.zeros((10, 10), dtype=int)
+current_picture = np.zeros((40, 40), dtype=int)
+lock_list = np.zeros((8, 8), dtype=int)
 
 text_game = "Your color is: {}"
 player1 = "First player is: Player{}, {}"
@@ -42,13 +42,14 @@ def client_update(pixel=None, UID=0):
         y_axis = pixel[1]
         current_picture[x_axis][y_axis] = UID
 
+
 def client_update_cell(pixel=None, UID=0):
     if pixel is not None:
         x_axis = pixel[0]
         y_axis = pixel[1]
         for i in range(5):
             for j in range(5):
-                current_picture[x_axis+i][y_axis+j] = UID
+                current_picture[x_axis + i][y_axis + j] = UID
 
 
 def game_check():
@@ -56,7 +57,7 @@ def game_check():
     for UID in UID_list:
         if UID == 0:
             continue
-        temp = (np.sum(current_picture == UID)) / 2500
+        temp = (np.sum(current_picture == UID)) / 1600
         Players.append({'UID': UID, 'percentage': temp})
     new = sorted(Players, key=lambda k: k.__getitem__('percentage'))
     new.reverse()
@@ -108,17 +109,17 @@ class Brush(object):
     def Draw(self, position):
         if self.drawing:
             for p in self.get_line(position):
-                x_axis_lock = min(int(p[0] / 60), 9)
-                y_axis_lock = min(int(p[1] / 60), 9)
-                x_axis = int(p[0] / 12) * 12
-                y_axis = int(p[1] / 12) * 12
+                x_axis_lock = min(int(p[0] / 75), 8)
+                y_axis_lock = min(int(p[1] / 75), 8)
+                x_axis = int(p[0] / 15) * 15
+                y_axis = int(p[1] / 15) * 15
 
                 if lock_list[x_axis_lock][y_axis_lock] == 0 or \
                         lock_list[x_axis_lock][y_axis_lock] == Client_UID:
-                    message = {'UID': Client_UID, 'draw_record': (int(p[0] / 12), int(p[1] / 12)), 'more': True}
+                    message = {'UID': Client_UID, 'draw_record': (int(p[0] / 15), int(p[1] / 15)), 'more': True}
                     draw_data.append(message)
-                    pg.draw.rect(self.screen, color, (x_axis, y_axis, 12, 12))
-
+                    pg.draw.rect(self.screen, color, (x_axis, y_axis, 15, 15))
+            delete_list_duplicate()
         self.last_position = position
 
 
@@ -152,30 +153,30 @@ class Painter:
             pg.display.update()
 
     def draw_game_line(self):
-        block_x = 60
-        block_y = 60
-        for i in range(11):
+        block_x = 75
+        block_y = 75
+        for i in range(9):
             pg.draw.line(self.screen, (0, 0, 0), (i * block_y, 0), (i * block_y, 600), 3)
-        for j in range(11):
+        for j in range(9):
             pg.draw.line(self.screen, (0, 0, 0), (0, j * block_x), (600, j * block_x), 3)
 
     def Draw_update(self, pxiel=None, UID=0):
         if pxiel is not None:
             x_axis = pxiel[0]
             y_axis = pxiel[1]
-            pg.draw.rect(self.screen, color_list[UID], (x_axis * 12, y_axis * 12, 12, 12))
+            pg.draw.rect(self.screen, color_list[UID], (x_axis * 15, y_axis * 15, 15, 15))
             self.draw_game_line()
 
     def Cell_update(self, pxiel=None, UID=0):
         if pxiel is not None:
             x_axis = pxiel[0]
             y_axis = pxiel[1]
-            pg.draw.rect(self.screen, color_list[UID], (x_axis * 12, y_axis * 12, 60, 60))
+            pg.draw.rect(self.screen, color_list[UID], (x_axis * 15, y_axis * 15, 75, 75))
             self.draw_game_line()
 
     def paint_judgement(self, position, event_type):
-        x = int(position[0] / 12)
-        y = int(position[1] / 12)
+        x = int(position[0] / 5)
+        y = int(position[1] / 5)
         if position[0] <= 600 or position[1] <= 600:
             if event_type == MOUSEBUTTONDOWN:
                 self.brush.start(position)
@@ -186,7 +187,7 @@ class Painter:
                 self.draw_game_line()
             elif event_type == MOUSEBUTTONUP:
                 self.brush.close()
-                message = {'UID': Client_UID, 'draw_record': (min(x, 50), min(y, 50)), 'more': False}
+                message = {'UID': Client_UID, 'draw_record': (min(x, 40), min(y, 40)), 'more': False}
                 delete_list_duplicate()
                 for i in range(3):
                     draw_data.append(message)
@@ -206,22 +207,22 @@ class Painter:
         self.screen.blit(rect, (0, 600))
         game_proccess = game_check()
 
-        game_text1 = player1.format(game_proccess[0]['UID'], "%.2f%%" %(game_proccess[0]['percentage']*100))
+        game_text1 = player1.format(game_proccess[0]['UID'], "%.2f%%" % (game_proccess[0]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text1, True, (0, 0, 0))
         self.screen.blit(text, (20, 620))
 
-        game_text2 = player2.format(game_proccess[1]['UID'], "%.2f%%" %(game_proccess[1]['percentage']*100))
+        game_text2 = player2.format(game_proccess[1]['UID'], "%.2f%%" % (game_proccess[1]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text2, True, (0, 0, 0))
         self.screen.blit(text, (20, 660))
 
-        game_text3 = player3.format(game_proccess[2]['UID'], "%.2f%%" %(game_proccess[2]['percentage']*100))
+        game_text3 = player3.format(game_proccess[2]['UID'], "%.2f%%" % (game_proccess[2]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text3, True, (0, 0, 0))
         self.screen.blit(text, (20, 700))
 
-        game_text4 = player4.format(game_proccess[3]['UID'], "%.2f%%" %(game_proccess[3]['percentage']*100))
+        game_text4 = player4.format(game_proccess[3]['UID'], "%.2f%%" % (game_proccess[3]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text4, True, (0, 0, 0))
         self.screen.blit(text, (20, 740))
@@ -235,7 +236,7 @@ class TCP_client:
         self.last_message = ""
         print(connection)
         if len(connection) != 0:
-            self.Painter = Painter(self.sock)
+            self.Painter = None
         else:
             print('connection not success')
             return
@@ -260,27 +261,33 @@ class TCP_client:
                 print('receive message error, detail:', repr(e))
                 self.sock.close()
             if len(data_stock) > 0:
-                temp = data_stock[0]+self.last_message
-                data_stock.insert(0,temp)
+                temp = data_stock[0] + self.last_message
+                data_stock.insert(0, temp)
                 self.last_message = data_stock[-1]
-
             while len(data_stock) != 0:
                 data_js = data_stock.pop(0)
+                # match the update drawing information
                 if fnmatch(str(data_js), '{"UID": *, "loc": *}'):
                     data_json = json.loads(data_js)
                     client_update(data_json['loc'], data_json['UID'])
                     self.Painter.Draw_update(data_json['loc'], data_json['UID'])
+                # match the update Lock List information
                 if fnmatch(str(data_js), '{"Lock": *, "loc": *}'):
                     data_json = json.loads(data_js)
                     i = data_json['loc']
                     x = i[0]
                     y = i[1]
+                    if x >= 8 or y >= 8:
+                        return
                     if data_json['Lock']:
                         lock_list[x][y] = data_json["Lock"]
                     else:
                         lock_list[x][y] = 0
+                # match the cell update information
                 if fnmatch(str(data_js), '{"UID_cell": *, "loc": *}'):
                     data_json = json.loads(data_js)
+                    if data_json['loc'][0] >= 8 or data_json['loc'][1] >= 8:
+                        return
                     client_update_cell(data_json['loc'], data_json['UID_cell'])
                     self.Painter.Cell_update(data_json['loc'], data_json['UID_cell'])
 
@@ -289,7 +296,8 @@ class TCP_client:
             loop_time_out = 1000
             global Client_UID
             global color
-            while loop_time_out >= 0:
+            break_flag = True
+            while loop_time_out >= 0 and break_flag:
                 loop_time_out -= 1
                 time.sleep(0.1)
                 try:
@@ -298,16 +306,32 @@ class TCP_client:
                     print("Building Client......")
                 data_stock = data.split(';;')
                 while len(data_stock) != 0:
-                    data_js = data_stock.pop()
+                    data_js = data_stock.pop(0)
+                    ## ↓↓Get player ID, update client ID in program
                     if fnmatch(str(data_js), '{"PID": *}'):
                         data_json = json.loads(data_js)
                         Client_UID = data_json['PID']
                         color = color_list[Client_UID]
                         print("Build Client Success......., ")
                         print("Client UID is {}, color is: {}".format(Client_UID, color))
-                        # for i in range(10):
-                        #     self.sock.send('{"UID": 1, "draw_record": [1, 1], "more": False}'.encode())
+                        break_flag = False
+                        break
+            if loop_time_out <= 0:
+                return
+
+            while True:
+                try:
+                    data = self.sock.recv(125).decode()
+                finally:
+                    print("Waiting For game start")
+                data_stock = data.split(';;')
+                while len(data_stock) != 0:
+                    data_js = data_stock.pop(0)
+                    if fnmatch(str(data_js), 'GAMESTART'):
+                        self.Painter = Painter(self.sock)
+                        print("Game_start")
                         return
+
 
         except:
             print('Build client error')

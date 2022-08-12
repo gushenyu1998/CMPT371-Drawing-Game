@@ -27,8 +27,8 @@ class DrawGameServer:
         self.receive_drawing_queue = queue.Queue()
         # self.map_send_queue = queue()
 
-        self.map = np.zeros((50, 50), dtype=int)
-        self.lock_list = np.zeros((10, 10), dtype=int)
+        self.map = np.zeros((40, 40), dtype=int)
+        self.lock_list = np.zeros((8, 8), dtype=int)
 
         self.lock = threading.Lock()
         self.last_message = ""
@@ -68,11 +68,10 @@ class DrawGameServer:
 
     def negotiateUID(self):
         while True:
-
             # have enough play, send start game and exit the function 
             if self.current_uid == self.max_uid:
-                # time.sleep(3)
-                # self.broadcast("GAMESTART".encode('utf-8'))
+                time.sleep(3)
+                self.broadcast("GAMESTART;;GAMESTART;;GAMESTART".encode('utf-8'))
                 print("Negotiate UID finish.")
                 return
 
@@ -103,27 +102,27 @@ class DrawGameServer:
         while True:
             time.sleep(10)
             # refresh the map every 10 seconds
-            for i in range(50):
-                for j in range(50):
+            for i in range(40):
+                for j in range(40):
                     message = {"UID": int(self.map[i][j]), "loc": (i, j)}
                     sending = json.dumps(message) + ";;"
                     self.broadcast(sending.encode())
             # refresh the locklist every 10 seoncds
-            for i in range(10):
-                for j in range(10):
+            for i in range(40):
+                for j in range(40):
                     message = {"islock": int(self.lock_list[i][j]), "loc": (i, j)}
                     sending = json.dumps(message) + ";;"
                     self.broadcast(sending.encode())
 
     def pixel_proccess(self):
-        try:
-            while True:
+        while True:
+            try:
                 data_json = self.receive_drawing_queue.get()  # pull a data from the queue
                 UID = data_json['UID']
                 if data_json['more']:
                     x = data_json['draw_record'][0]
                     y = data_json['draw_record'][1]
-                    if x >= 50 or y >= 50 or x < 0 or y < 0:  # file the data, and prune the index out of range
+                    if x >= 40 or y >= 40 or x < 0 or y < 0:  # file the data, and prune the index out of range
                         continue
                     if self.map[x][y] != 0:
                         continue
@@ -135,9 +134,9 @@ class DrawGameServer:
                         # once receive a pixel, broadcast it to let other client update the map
                         message_pixel = json.dumps(sending_pixel) + ";;"
                         self.broadcast(message_pixel.encode())
-                        sending_pixel = {"Lock": UID, "loc": (int(x / 5), int(y / 5))}
-                        message_pixel = json.dumps(sending_pixel) + ";;"
-                        self.broadcast(message_pixel.encode())
+                        sending_lock = {"Lock": UID, "loc": (int(x / 5), int(y / 5))}
+                        message_lock = json.dumps(sending_lock) + ";;"
+                        self.broadcast(message_lock.encode())
                         self.map[x][y] = UID
                         self.lock_list[int(x / 5)][int(y / 5)] = UID
                         # update the inside map and lock list
@@ -152,7 +151,7 @@ class DrawGameServer:
                                 self.broadcast(message_pixel.encode())
 
                 else:
-                    # proccess the data that shows finish paint
+                    # proccess the data that shows a user pull up his mouse button
                     UID_lock = np.where(self.lock_list == UID)
                     lock_row = list(UID_lock[0])
                     lock_col = list(UID_lock[1])
@@ -170,9 +169,11 @@ class DrawGameServer:
                             for i in range(5):
                                 self.broadcast(clean_message.encode())
 
-        except Exception as e:
-            print("Map running error: details", repr(e))
-            traceback.print_exc()
+
+            except Exception as e:
+                print("Map running error: details", repr(e))
+                traceback.print_exc()
+
 
     def cell_check(self, UID, position):
         '''
@@ -209,12 +210,12 @@ class DrawGameServer:
     def run(self):
         print('Server is starting ...')
         self.negotiateUID()
-        # time.sleep(1)
+
         print('Game in running ...')
         self.inGame()
 
 
 if __name__ == "__main__":
-    game_server = DrawGameServer(59000, 1)
+    game_server = DrawGameServer(9006, 2)
     game_server.run()
     # run()

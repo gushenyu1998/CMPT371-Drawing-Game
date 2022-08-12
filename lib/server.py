@@ -31,18 +31,19 @@ def server():
         print('Accept new connection from %s:%s' % addr)
         socket_thread.send('connect success!'.encode())
         while True:
-            for i in range(50):
-                for j in range(50):
+            for i in range(40):
+                for j in range(40):
                     a = {"UID": random.randint(1, 4), "loc": (i,j)}
                     send = json.dumps(a) + ";;"
                     socket_thread.send(send.encode())
 
-            for i in range(50):
-                for j in range(50):
+            for i in range(40):
+                for j in range(40):
                     a = {"UID": 0, "loc": (i, j)}
                     send = json.dumps(a) + ";;"
                     socket_thread.send(send.encode())
-                    time.sleep(0.001)
+                    time.sleep(0.01)
+
 
 
 
