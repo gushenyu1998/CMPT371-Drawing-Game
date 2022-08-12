@@ -313,7 +313,7 @@ class TCP_client:
             print('Build client error')
 
     def run(self):
-        # self.build_player()
+        self.build_player()
         th1 = threading.Thread(target=self.receive_message)
         th1.start()
 
