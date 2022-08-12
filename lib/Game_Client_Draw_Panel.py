@@ -163,9 +163,6 @@ class Painter:
         if pxiel is not None:
             x_axis = pxiel[0]
             y_axis = pxiel[1]
-            # if self.screen.get_at((x_axis, y_axis)) == (255, 255, 255, 255) or \
-            #         self.screen.get_at((x_axis, y_axis)) == color_list[UID]:
-            #     return
             pg.draw.rect(self.screen, color_list[UID], (x_axis * 12, y_axis * 12, 12, 12))
             self.draw_game_line()
 
@@ -250,6 +247,10 @@ class TCP_client:
         self.Painter.run()
 
     def receive_message(self):
+        '''
+        Receve the message and process the map, update client
+        :return:
+        '''
         while True:
             data_stock = []
             try:

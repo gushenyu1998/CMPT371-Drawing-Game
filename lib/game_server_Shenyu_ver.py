@@ -8,7 +8,6 @@ from fnmatch import fnmatch
 import numpy as np
 
 
-
 class DrawGameServer:
     def __init__(self, port, players):
         self.port = port
@@ -97,14 +96,19 @@ class DrawGameServer:
             thread.start()
 
     def broadcast_map(self):
+        '''
+        Refresh the map every 10 seconds
+        :return:
+        '''
         while True:
             time.sleep(10)
+            # refresh the map every 10 seconds
             for i in range(50):
                 for j in range(50):
                     message = {"UID": int(self.map[i][j]), "loc": (i, j)}
                     sending = json.dumps(message) + ";;"
                     self.broadcast(sending.encode())
-
+            # refresh the locklist every 10 seoncds
             for i in range(10):
                 for j in range(10):
                     message = {"islock": int(self.lock_list[i][j]), "loc": (i, j)}
@@ -114,20 +118,21 @@ class DrawGameServer:
     def pixel_proccess(self):
         try:
             while True:
-                data_json = self.receive_drawing_queue.get()
+                data_json = self.receive_drawing_queue.get()  # pull a data from the queue
                 UID = data_json['UID']
                 if data_json['more']:
                     x = data_json['draw_record'][0]
                     y = data_json['draw_record'][1]
-                    if x >= 50 or y >= 50 or x < 0 or y < 0:
+                    if x >= 50 or y >= 50 or x < 0 or y < 0:  # file the data, and prune the index out of range
                         continue
                     if self.map[x][y] != 0:
                         continue
                     elif self.lock_list[int(x / 5)][int(y / 5)] != 0 and \
-                            self.lock_list[int(x / 5)][int(y / 5)] != UID:
+                            self.lock_list[int(x / 5)][int(y / 5)] != UID:  # prune the pixel inside the lock list
                         continue
                     else:
                         sending_pixel = {"UID": UID, "loc": (x, y)}
+                        # once receive a pixel, broadcast it to let other client update the map
                         message_pixel = json.dumps(sending_pixel) + ";;"
                         self.broadcast(message_pixel.encode())
                         sending_pixel = {"Lock": UID, "loc": (int(x / 5), int(y / 5))}
@@ -135,7 +140,9 @@ class DrawGameServer:
                         self.broadcast(message_pixel.encode())
                         self.map[x][y] = UID
                         self.lock_list[int(x / 5)][int(y / 5)] = UID
+                        # update the inside map and lock list
                         if self.cell_check(UID, (x, y)):
+                            # once the map was checked as full-filled, broadcast the cell
                             self.cell_fill_out(UID, (x, y))
                             i = int(x / 5) * 5
                             j = int(y / 5) * 5
@@ -145,11 +152,13 @@ class DrawGameServer:
                                 self.broadcast(message_pixel.encode())
 
                 else:
+                    # proccess the data that shows finish paint
                     UID_lock = np.where(self.lock_list == UID)
                     lock_row = list(UID_lock[0])
                     lock_col = list(UID_lock[1])
                     for i in range(len(lock_row)):
-                        if not self.cell_check(UID,  (int(lock_row[i]*5),int(lock_col[i]*5))):
+                        # release the cell with are not full-filled
+                        if not self.cell_check(UID, (int(lock_row[i] * 5), int(lock_col[i] * 5))):
                             self.lock_list[lock_row[i]][lock_col[i]] = 0
                             self.cell_fill_out(0, (lock_row[i] * 5, lock_col[i] * 5))
                             sending_pixel = {"Lock": 0, "loc": (int(lock_row[i]), int(lock_col[i]))}
@@ -158,15 +167,20 @@ class DrawGameServer:
                                 self.broadcast(message_pixel.encode())
                             clean_cell = {"UID_cell": 0, "loc": (int(lock_row[i] * 5), int(lock_col[i] * 5))}
                             clean_message = json.dumps(clean_cell) + ";;"
-                            for i in range(2):
+                            for i in range(5):
                                 self.broadcast(clean_message.encode())
-
 
         except Exception as e:
             print("Map running error: details", repr(e))
             traceback.print_exc()
 
     def cell_check(self, UID, position):
+        '''
+        check if a cell is full-filled
+        :param UID: check by full filled by who
+        :param position: target cell in the list
+        :return: Ture if a cell is 50% full-filled
+        '''
         p = position
         x = int(p[0] / 5) * 5
         y = int(p[1] / 5) * 5
