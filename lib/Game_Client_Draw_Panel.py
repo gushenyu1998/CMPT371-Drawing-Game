@@ -348,7 +348,7 @@ class TCP_client:
                 return
 
             while True:
-                print("Waiting For game start, need about 3 seconds")
+                print("Waiting For other player joins in........")
                 try:
                     data = self.sock.recv(125).decode()
                 finally:
@@ -357,6 +357,8 @@ class TCP_client:
                 while len(data_stock) != 0:
                     data_js = data_stock.pop(0)
                     if fnmatch(str(data_js), 'GAMESTART'):
+                        print("Waiting For game start, need about 3 seconds")
+                        time.sleep(3)
                         self.Painter = Painter(self.sock)
                         print("Game_start")
                         return

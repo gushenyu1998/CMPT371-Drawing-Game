@@ -96,7 +96,6 @@ class DrawGameServer:
         while True:
             # have enough play, send start game and exit the function 
             if self.current_uid == self.max_uid:
-                time.sleep(3)
                 self.broadcast("GAMESTART;;GAMESTART;;GAMESTART".encode('utf-8'))
                 print("Negotiate UID finish.")
                 return
