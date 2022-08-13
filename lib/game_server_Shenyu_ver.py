@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 import threading
 import time
 import queue
@@ -22,7 +23,7 @@ class DrawGameServer:
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((self.host, port))
-        self.server.listen()
+        self.server.listen(5)
 
         self.receive_drawing_queue = queue.Queue()
         # self.map_send_queue = queue()
@@ -37,16 +38,38 @@ class DrawGameServer:
         while True:
             try:
                 while True:
-                    self.client_recever(client)
+                    self.client_receiver(client)
             except Exception as e:
-                # print("there is an error, detail: ", repr(e))
+                print("there is an error, detail: ", repr(e))
                 break
 
-    def client_recever(self, client):
+    def check_win(self):
+        temp = np.sum(self.map == 0)
+        Players = []
+        if temp == 0:
+            message = "CLOSEGAME;;CLOSEGAME;;CLOSEGAME;;"
+            for UID in self.uids:
+                temp = (np.sum(self.map == UID)) / 1600
+                Players.append({'UID': UID, 'percentage': temp})
+            new = sorted(Players, key=lambda k: k.__getitem__('percentage'))
+            new.reverse()
+            winner = new[0]
+            winnner_json = json.dumps(winner)
+            for i in range(3):
+                message += winnner_json+";;"
+            self.broadcast(message.encode())
+            self.server.close()
+            sys.exit(0)
+
+
+    def client_receiver(self, client):
         while True:
             try:
                 while True:
                     data = client.recv(1024).decode()
+                    if len(data) == 0:
+                        client.close()
+                        return
                     data_stock = data.split(';')
                     if len(data_stock) != 0:
                         temp = data_stock[0] + self.last_message
@@ -59,8 +82,8 @@ class DrawGameServer:
                             self.receive_drawing_queue.put(data_json)
                             self.lock.release()
             except Exception as e:
-                print("Client handel exception", repr(e))
-                break
+                client.close()
+                return
 
     def broadcast(self, message):
         for client in self.clients:
@@ -84,7 +107,7 @@ class DrawGameServer:
 
             print("Assign uid", new_play_uid)
 
-            send_uid_data = ';;{"PID": ' + str(new_play_uid) + '};;'
+            send_uid_data = ';;{"PID": ' + str(new_play_uid) + ', "MAX": '+str(self.max_uid-1)+'};;'
             for i in range(2):
                 client.send(send_uid_data.encode('utf-8'))
 
@@ -93,26 +116,6 @@ class DrawGameServer:
 
             thread = threading.Thread(target=self.handle_client, args=(client,))
             thread.start()
-
-    def broadcast_map(self):
-        '''
-        Refresh the map every 10 seconds
-        :return:
-        '''
-        while True:
-            time.sleep(10)
-            # refresh the map every 10 seconds
-            for i in range(40):
-                for j in range(40):
-                    message = {"UID": int(self.map[i][j]), "loc": (i, j)}
-                    sending = json.dumps(message) + ";;"
-                    self.broadcast(sending.encode())
-            # refresh the locklist every 10 seoncds
-            for i in range(40):
-                for j in range(40):
-                    message = {"islock": int(self.lock_list[i][j]), "loc": (i, j)}
-                    sending = json.dumps(message) + ";;"
-                    self.broadcast(sending.encode())
 
     def pixel_proccess(self):
         while True:
@@ -149,12 +152,12 @@ class DrawGameServer:
                             message_pixel = json.dumps(sending_pixel) + ";;"
                             for i in range(5):
                                 self.broadcast(message_pixel.encode())
-
                 else:
                     # proccess the data that shows a user pull up his mouse button
                     UID_lock = np.where(self.lock_list == UID)
                     lock_row = list(UID_lock[0])
                     lock_col = list(UID_lock[1])
+
                     for i in range(len(lock_row)):
                         # release the cell with are not full-filled
                         if not self.cell_check(UID, (int(lock_row[i] * 5), int(lock_col[i] * 5))):
@@ -168,7 +171,7 @@ class DrawGameServer:
                             clean_message = json.dumps(clean_cell) + ";;"
                             for i in range(5):
                                 self.broadcast(clean_message.encode())
-
+                self.check_win()
 
             except Exception as e:
                 print("Map running error: details", repr(e))
@@ -195,9 +198,6 @@ class DrawGameServer:
     def inGame(self):
         th3 = threading.Thread(target=self.pixel_proccess)
         th3.start()
-        # th4 = threading.Thread(target=self.broadcast_map)
-        # th4.start()
-        # self.pixel_proccess()
 
     def cell_fill_out(self, UID, position):
         p = position
@@ -208,7 +208,8 @@ class DrawGameServer:
                 self.map[x + i][y + j] = UID
 
     def run(self):
-        print('Server is starting ...')
+        print('Server is starting ... number of player in this game is: '+str(self.max_uid-1))
+        print("This server's IP address is:" + str(self.host) + " port number is: "+ str(self.server.getsockname()[1]))
         self.negotiateUID()
 
         print('Game in running ...')
@@ -216,6 +217,7 @@ class DrawGameServer:
 
 
 if __name__ == "__main__":
-    game_server = DrawGameServer(9006, 2)
+    max_player = input("Please input how many players in this game: ")
+    game_server = DrawGameServer(0, int(max_player))
     game_server.run()
     # run()

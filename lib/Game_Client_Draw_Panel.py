@@ -19,15 +19,16 @@ server_host = 'localhost'
 
 draw_data = []
 UID_list = [0, 1, 2, 3, 4]
-current_picture = np.zeros((40, 40), dtype=int)
+current_map = np.zeros((40, 40), dtype=int)
 lock_list = np.zeros((8, 8), dtype=int)
 
-text_game = "Your color is: {}"
+max_client = 1
 player1 = "First player is: Player{}, {}"
 player2 = "Second player is: Player{}, {}"
 player3 = "Third player is: Player{}, {}"
 player4 = "Last player is: Player{}, {}"
 
+Painter_end_flag = False
 
 def delete_list_duplicate():
     global draw_data
@@ -40,7 +41,7 @@ def client_update(pixel=None, UID=0):
     if pixel is not None:
         x_axis = pixel[0]
         y_axis = pixel[1]
-        current_picture[x_axis][y_axis] = UID
+        current_map[x_axis][y_axis] = UID
 
 
 def client_update_cell(pixel=None, UID=0):
@@ -49,7 +50,7 @@ def client_update_cell(pixel=None, UID=0):
         y_axis = pixel[1]
         for i in range(5):
             for j in range(5):
-                current_picture[x_axis + i][y_axis + j] = UID
+                current_map[x_axis + i][y_axis + j] = UID
 
 
 def game_check():
@@ -57,7 +58,7 @@ def game_check():
     for UID in UID_list:
         if UID == 0:
             continue
-        temp = (np.sum(current_picture == UID)) / 1600
+        temp = (np.sum(current_map == UID)) / 1600
         Players.append({'UID': UID, 'percentage': temp})
     new = sorted(Players, key=lambda k: k.__getitem__('percentage'))
     new.reverse()
@@ -109,8 +110,8 @@ class Brush(object):
     def Draw(self, position):
         if self.drawing:
             for p in self.get_line(position):
-                x_axis_lock = min(int(p[0] / 75), 8)
-                y_axis_lock = min(int(p[1] / 75), 8)
+                x_axis_lock = min(int(p[0] / 75), 7)
+                y_axis_lock = min(int(p[1] / 75), 7)
                 x_axis = int(p[0] / 15) * 15
                 y_axis = int(p[1] / 15) * 15
 
@@ -125,7 +126,7 @@ class Brush(object):
 
 class Painter:
     def __init__(self, Sock):
-        pg.display.set_caption("Test Test Test")
+        pg.display.set_caption("Player "+str(Client_UID))
         self.window = (600, 800)
         self.clock = pg.time.Clock()
         self.screen = pg.display.set_mode(self.window, 0, 32)
@@ -137,12 +138,14 @@ class Painter:
         pg.init()
         self.screen.fill((255, 255, 255))
         self.draw_game_line()
-
+        global Painter_end_flag
         while True:
             self.clock.tick(600)
             for event in pg.event.get():
-                if event.type == QUIT:
-                    exit()
+                if event.type == QUIT or Painter_end_flag:
+                    pg.display.quit()
+                    pg.quit()
+                    return
                 elif event.type == MOUSEBUTTONDOWN or \
                         event.type == MOUSEMOTION or \
                         event.type == MOUSEBUTTONUP:
@@ -175,8 +178,8 @@ class Painter:
             self.draw_game_line()
 
     def paint_judgement(self, position, event_type):
-        x = int(position[0] / 5)
-        y = int(position[1] / 5)
+        x = int(position[0] / 15)
+        y = int(position[1] / 15)
         if position[0] <= 600 or position[1] <= 600:
             if event_type == MOUSEBUTTONDOWN:
                 self.brush.start(position)
@@ -192,7 +195,6 @@ class Painter:
                 for i in range(3):
                     draw_data.append(message)
                 self.sending_data()
-
     def sending_data(self):
         while len(draw_data) != 0:
             message = draw_data.pop()
@@ -211,21 +213,31 @@ class Painter:
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text1, True, (0, 0, 0))
         self.screen.blit(text, (20, 620))
+        pg.draw.rect(self.screen,color_list[game_proccess[0]['UID']], ((450, 620),(30,30)))
 
+        if max_client<2:
+            return
         game_text2 = player2.format(game_proccess[1]['UID'], "%.2f%%" % (game_proccess[1]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text2, True, (0, 0, 0))
         self.screen.blit(text, (20, 660))
+        pg.draw.rect(self.screen, color_list[game_proccess[1]['UID']], ((450, 660), (30, 30)))
 
+        if max_client < 3:
+            return
         game_text3 = player3.format(game_proccess[2]['UID'], "%.2f%%" % (game_proccess[2]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text3, True, (0, 0, 0))
         self.screen.blit(text, (20, 700))
+        pg.draw.rect(self.screen, color_list[game_proccess[2]['UID']], ((450, 700), (30, 30)))
 
+        if max_client < 4:
+            return
         game_text4 = player4.format(game_proccess[3]['UID'], "%.2f%%" % (game_proccess[3]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text4, True, (0, 0, 0))
         self.screen.blit(text, (20, 740))
+        pg.draw.rect(self.screen, color_list[game_proccess[3]['UID']], ((450, 700), (30, 30)))
 
 
 class TCP_client:
@@ -241,8 +253,6 @@ class TCP_client:
             print('connection not success')
             return
 
-    def get_painter(self):
-        return self.Painter
 
     def client_draw_panel(self, a=None):
         self.Painter.run()
@@ -271,6 +281,7 @@ class TCP_client:
                     data_json = json.loads(data_js)
                     client_update(data_json['loc'], data_json['UID'])
                     self.Painter.Draw_update(data_json['loc'], data_json['UID'])
+
                 # match the update Lock List information
                 if fnmatch(str(data_js), '{"Lock": *, "loc": *}'):
                     data_json = json.loads(data_js)
@@ -286,10 +297,19 @@ class TCP_client:
                 # match the cell update information
                 if fnmatch(str(data_js), '{"UID_cell": *, "loc": *}'):
                     data_json = json.loads(data_js)
-                    if data_json['loc'][0] >= 8 or data_json['loc'][1] >= 8:
+                    if data_json['loc'][0] >= 40 or data_json['loc'][1] >= 40:
                         return
                     client_update_cell(data_json['loc'], data_json['UID_cell'])
                     self.Painter.Cell_update(data_json['loc'], data_json['UID_cell'])
+                if str(data_js) == 'CLOSEGAME':
+                    global Painter_end_flag
+                    Painter_end_flag = True
+                if fnmatch(str(data_js),'{"UID": *, "percentage": *}'):
+                    data_json = json.loads(data_js)
+                    print("Game is over, the winner is Player"+str(data_json['UID']))
+                    print("Thank you for playing, Please close this program")
+                    time.sleep(1000)
+                    exit(1)
 
     def build_player(self):
         try:
@@ -308,9 +328,13 @@ class TCP_client:
                 while len(data_stock) != 0:
                     data_js = data_stock.pop(0)
                     ## ↓↓Get player ID, update client ID in program
-                    if fnmatch(str(data_js), '{"PID": *}'):
+                    if fnmatch(str(data_js), '{"PID": *, "MAX": *}'):
+                        global max_client
+                        global UID_list
                         data_json = json.loads(data_js)
                         Client_UID = data_json['PID']
+                        max_client = data_json['MAX']
+                        UID_list = UID_list[0:max_client+1]
                         color = color_list[Client_UID]
                         print("Build Client Success......., ")
                         print("Client UID is {}, color is: {}".format(Client_UID, color))
@@ -320,10 +344,11 @@ class TCP_client:
                 return
 
             while True:
+                print("Waiting For game start, need about 3 seconds")
                 try:
                     data = self.sock.recv(125).decode()
                 finally:
-                    print("Waiting For game start")
+                    print("Waiting For game start, need about 3 seconds")
                 data_stock = data.split(';;')
                 while len(data_stock) != 0:
                     data_js = data_stock.pop(0)
@@ -355,4 +380,6 @@ def client_run_proccess():
 
 
 if __name__ == '__main__':
+    port = input("Please input your room port number: ")
+    TCP_Port = int(port)
     client_run_proccess()
