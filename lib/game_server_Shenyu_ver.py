@@ -34,6 +34,8 @@ class DrawGameServer:
         self.lock = threading.Lock()
         self.last_message = ""
 
+        self.threads = []
+
     def handle_client(self, client):
         while True:
             try:
@@ -59,8 +61,8 @@ class DrawGameServer:
                 message += winnner_json+";;"
             self.broadcast(message.encode())
             self.server.close()
-            sys.exit(0)
-
+            print("exit game server")
+            exit()
 
     def client_receiver(self, client):
         while True:
@@ -68,8 +70,9 @@ class DrawGameServer:
                 while True:
                     data = client.recv(1024).decode()
                     if len(data) == 0:
+                        print("client close")
                         client.close()
-                        return
+                        sys.exit(0)
                     data_stock = data.split(';')
                     if len(data_stock) != 0:
                         temp = data_stock[0] + self.last_message
@@ -115,6 +118,7 @@ class DrawGameServer:
             self.clients_address.append(address)
 
             thread = threading.Thread(target=self.handle_client, args=(client,))
+            self.threads.append(thread)
             thread.start()
 
     def pixel_proccess(self):
@@ -174,8 +178,8 @@ class DrawGameServer:
                                 self.broadcast(clean_message.encode())
 
             except Exception as e:
-                print("Map running error: details", repr(e))
-                traceback.print_exc()
+                exit()
+                return
 
 
     def cell_check(self, UID, position):
@@ -197,7 +201,9 @@ class DrawGameServer:
 
     def inGame(self):
         th3 = threading.Thread(target=self.pixel_proccess)
+        self.threads.append(th3)
         th3.start()
+
 
     def cell_fill_out(self, UID, position):
         p = position
@@ -214,6 +220,9 @@ class DrawGameServer:
 
         print('Game in running ...')
         self.inGame()
+        for thread in self.threads:
+            thread.join()
+
 
 
 if __name__ == "__main__":

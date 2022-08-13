@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import socket
 import threading
 import time
@@ -311,7 +312,7 @@ class TCP_client:
                     data_json = json.loads(data_js)
                     print("Game is over, the winner is Player" + str(data_json['UID']))
                     print("Thank you for playing, Please close this program")
-                    time.sleep(1000)
+                    os.system("Pause")
                     exit(1)
 
     def build_player(self):
@@ -367,9 +368,11 @@ class TCP_client:
     def run(self):
         self.build_player()
         th1 = threading.Thread(target=self.receive_message)
+        th1.daemon = True
         th1.start()
 
         th2 = threading.Thread(target=self.Painter.run(), args=(self.Painter,))
+        th2.daemon = True
         th2.start()
 
         th1.join()
