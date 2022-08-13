@@ -120,6 +120,7 @@ class DrawGameServer:
     def pixel_proccess(self):
         while True:
             try:
+                self.check_win()
                 data_json = self.receive_drawing_queue.get()  # pull a data from the queue
                 UID = data_json['UID']
                 if data_json['more']:
@@ -171,7 +172,6 @@ class DrawGameServer:
                             clean_message = json.dumps(clean_cell) + ";;"
                             for i in range(5):
                                 self.broadcast(clean_message.encode())
-                self.check_win()
 
             except Exception as e:
                 print("Map running error: details", repr(e))

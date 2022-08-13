@@ -30,6 +30,7 @@ player4 = "Last player is: Player{}, {}"
 
 Painter_end_flag = False
 
+
 def delete_list_duplicate():
     global draw_data
     if draw_data is None:
@@ -110,6 +111,8 @@ class Brush(object):
     def Draw(self, position):
         if self.drawing:
             for p in self.get_line(position):
+                if p[0] < 0 or p[0] >= 600 or p[1] < 0 or p[1] >= 600:
+                    continue
                 x_axis_lock = min(int(p[0] / 75), 7)
                 y_axis_lock = min(int(p[1] / 75), 7)
                 x_axis = int(p[0] / 15) * 15
@@ -126,7 +129,7 @@ class Brush(object):
 
 class Painter:
     def __init__(self, Sock):
-        pg.display.set_caption("Player "+str(Client_UID))
+        pg.display.set_caption("Player " + str(Client_UID))
         self.window = (600, 800)
         self.clock = pg.time.Clock()
         self.screen = pg.display.set_mode(self.window, 0, 32)
@@ -190,11 +193,12 @@ class Painter:
                 self.draw_game_line()
             elif event_type == MOUSEBUTTONUP:
                 self.brush.close()
-                message = {'UID': Client_UID, 'draw_record': (min(x, 40), min(y, 40)), 'more': False}
+                message = {'UID': Client_UID, 'draw_record': (4, 5), 'more': False}
                 delete_list_duplicate()
                 for i in range(3):
                     draw_data.append(message)
                 self.sending_data()
+
     def sending_data(self):
         while len(draw_data) != 0:
             message = draw_data.pop()
@@ -213,9 +217,9 @@ class Painter:
         font_t = pg.font.SysFont('arial', 30)
         text = font_t.render(game_text1, True, (0, 0, 0))
         self.screen.blit(text, (20, 620))
-        pg.draw.rect(self.screen,color_list[game_proccess[0]['UID']], ((450, 620),(30,30)))
+        pg.draw.rect(self.screen, color_list[game_proccess[0]['UID']], ((450, 620), (30, 30)))
 
-        if max_client<2:
+        if max_client < 2:
             return
         game_text2 = player2.format(game_proccess[1]['UID'], "%.2f%%" % (game_proccess[1]['percentage'] * 100))
         font_t = pg.font.SysFont('arial', 30)
@@ -252,7 +256,6 @@ class TCP_client:
         else:
             print('connection not success')
             return
-
 
     def client_draw_panel(self, a=None):
         self.Painter.run()
@@ -304,9 +307,9 @@ class TCP_client:
                 if str(data_js) == 'CLOSEGAME':
                     global Painter_end_flag
                     Painter_end_flag = True
-                if fnmatch(str(data_js),'{"UID": *, "percentage": *}'):
+                if fnmatch(str(data_js), '{"UID": *, "percentage": *}'):
                     data_json = json.loads(data_js)
-                    print("Game is over, the winner is Player"+str(data_json['UID']))
+                    print("Game is over, the winner is Player" + str(data_json['UID']))
                     print("Thank you for playing, Please close this program")
                     time.sleep(1000)
                     exit(1)
@@ -334,7 +337,7 @@ class TCP_client:
                         data_json = json.loads(data_js)
                         Client_UID = data_json['PID']
                         max_client = data_json['MAX']
-                        UID_list = UID_list[0:max_client+1]
+                        UID_list = UID_list[0:max_client + 1]
                         color = color_list[Client_UID]
                         print("Build Client Success......., ")
                         print("Client UID is {}, color is: {}".format(Client_UID, color))
