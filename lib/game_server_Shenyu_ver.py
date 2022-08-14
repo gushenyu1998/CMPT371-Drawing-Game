@@ -10,9 +10,9 @@ import numpy as np
 
 
 class DrawGameServer:
-    def __init__(self, port, players):
+    def __init__(self,host, port, players):
         self.port = port
-        self.host = '127.0.0.1'
+        self.host = host
 
         self.clients = []
         self.clients_address = []
@@ -96,6 +96,7 @@ class DrawGameServer:
         while True:
             # have enough play, send start game and exit the function 
             if self.current_uid == self.max_uid:
+                time.sleep(3)
                 self.broadcast("GAMESTART;;GAMESTART;;GAMESTART".encode('utf-8'))
                 print("Negotiate UID finish.")
                 return
@@ -226,6 +227,7 @@ class DrawGameServer:
 
 if __name__ == "__main__":
     max_player = input("Please input how many players in this game: ")
-    game_server = DrawGameServer(0, int(max_player))
+    host = input("Please bind your ip for this game: ")
+    game_server = DrawGameServer(str(host), 0, int(max_player))
     game_server.run()
     # run()
