@@ -10,33 +10,41 @@ import numpy as np
 
 
 class DrawGameServer:
-    def __init__(self,host, port, players):
-        self.port = port
-        self.host = host
+    '''
+        Initialize the server,
+    '''
 
-        self.clients = []
-        self.clients_address = []
+    def __init__(self, host, port, players):
+        self.port = port  # port in TCP clients
+        self.host = host  # ip address in TCP clients
 
-        self.current_uid = 1
+        self.clients = []  # list of clients connection socket
+        self.clients_address = []  # list of address of client's connection sockets
+
+        self.current_uid = 1  # Variable used in nigociate with user
         self.max_uid = players + 1
         self.uids = []
 
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((self.host, port))
-        self.server.listen(5)
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # contribute the server listener
+        self.server.bind((self.host, port))  # bind listening port
+        self.server.listen(5)  # max listen 5 clients
 
-        self.receive_drawing_queue = queue.Queue()
-        # self.map_send_queue = queue()
+        self.receive_drawing_queue = queue.Queue()  # buffer for the receiving data
 
-        self.map = np.zeros((40, 40), dtype=int)
-        self.lock_list = np.zeros((8, 8), dtype=int)
+        self.map = np.zeros((40, 40), dtype=int)  # map to handle the shared object
+        self.lock_list = np.zeros((8, 8), dtype=int)  # lock cell list to handle the shared object
 
-        self.lock = threading.Lock()
+        self.lock = threading.Lock()  # Lock for multiple thread
         self.last_message = ""
 
         self.threads = []
 
     def handle_client(self, client):
+        '''
+        Handle the message from the clients, and catch exception when happens
+        :param client: the player's connection in game
+        :return:
+        '''
         while True:
             try:
                 while True:
@@ -46,9 +54,14 @@ class DrawGameServer:
                 break
 
     def check_win(self):
+        '''
+        Check if the game is over, if yes, send game over message
+        :return:
+        '''
         temp = np.sum(self.map == 0)
         Players = []
         if temp == 0:
+            # use the left white cells to check if the game is over
             message = "CLOSEGAME;;CLOSEGAME;;CLOSEGAME;;"
             for UID in self.uids:
                 temp = (np.sum(self.map == UID)) / 1600
@@ -58,18 +71,25 @@ class DrawGameServer:
             winner = new[0]
             winnner_json = json.dumps(winner)
             for i in range(3):
-                message += winnner_json+";;"
+                message += winnner_json + ";;"
             self.broadcast(message.encode())
+            # broadcast the game over message to all players
             self.server.close()
             print("exit game server")
             exit()
 
     def client_receiver(self, client):
+        '''
+        Handle the message received from each players, put the player's date into the buffer
+        :param client: game player's connection sockets
+        :return:
+        '''
         while True:
             try:
                 while True:
                     data = client.recv(1024).decode()
                     if len(data) == 0:
+                        # After game over, close the program
                         print("client close")
                         client.close()
                         sys.exit(0)
@@ -80,6 +100,7 @@ class DrawGameServer:
                     while len(data_stock) != 0:
                         data_js = data_stock.pop()
                         if fnmatch(str(data_js), '{"UID": *, "draw_record": *, "more": *}'):
+                            # If the matched data received, push them to the buffer of server
                             data_json = json.loads(data_js)
                             self.lock.acquire()
                             self.receive_drawing_queue.put(data_json)
@@ -89,10 +110,20 @@ class DrawGameServer:
                 return
 
     def broadcast(self, message):
+        '''
+        # send message to every player in the game
+        :param message:
+        :return:
+        '''
+
         for client in self.clients:
             client.send(message)
 
     def negotiateUID(self):
+        '''
+        Nigoticate with player, distribute id to each player
+        :return:
+        '''
         while True:
             # have enough play, send start game and exit the function 
             if self.current_uid == self.max_uid:
@@ -110,13 +141,14 @@ class DrawGameServer:
 
             print("Assign uid", new_play_uid)
 
-            send_uid_data = ';;{"PID": ' + str(new_play_uid) + ', "MAX": '+str(self.max_uid-1)+'};;'
+            send_uid_data = ';;{"PID": ' + str(new_play_uid) + ', "MAX": ' + str(self.max_uid - 1) + '};;'
             for i in range(2):
-                client.send(send_uid_data.encode('utf-8'))
+                client.send(send_uid_data.encode('utf-8'))  # send to negotiate protocol to clients
 
             self.clients.append(client)
             self.clients_address.append(address)
 
+            # for every client, create a thread for them to receive message
             thread = threading.Thread(target=self.handle_client, args=(client,))
             self.threads.append(thread)
             thread.start()
@@ -181,7 +213,6 @@ class DrawGameServer:
                 exit()
                 return
 
-
     def cell_check(self, UID, position):
         '''
         check if a cell is full-filled
@@ -200,12 +231,21 @@ class DrawGameServer:
             return False
 
     def inGame(self):
+        '''
+        Create a new thread to process and send message to clients
+        :return:
+        '''
         th3 = threading.Thread(target=self.pixel_proccess)
         self.threads.append(th3)
         th3.start()
 
-
     def cell_fill_out(self, UID, position):
+        '''
+        Fill the cell in the map data structure inside
+        :param UID: which player fill this cell
+        :param position: where the cell is
+        :return:
+        '''
         p = position
         x = int(p[0] / 5) * 5
         y = int(p[1] / 5) * 5
@@ -214,12 +254,11 @@ class DrawGameServer:
                 self.map[x + i][y + j] = UID
 
     def run(self):
-        print('Server is starting ... number of player in this game is: '+str(self.max_uid-1))
-        print("This server's IP address is:" + str(self.host) + " port number is: "+ str(self.server.getsockname()[1]))
+        print('Server is starting ... number of player in this game is: ' + str(self.max_uid - 1))
+        print("This server's IP address is:" + str(self.host) + " port number is: " + str(self.server.getsockname()[1]))
         self.negotiateUID()
 
         print('Game in running ...')
         self.inGame()
         for thread in self.threads:
             thread.join()
-

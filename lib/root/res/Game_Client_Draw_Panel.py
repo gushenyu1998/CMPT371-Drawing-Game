@@ -9,35 +9,48 @@ import numpy as np
 import pygame as pg
 from pygame.locals import *
 
-Client_UID = 1
-color = (255, 0, 0)
-map_cell = 10
-cell_pixel_length = 75
+Client_UID = 1  # Default Client ID in game
+color = (255, 0, 0)  # Color of this player drawing, default = red
+cell_pixel_length = 75 # For every cell in map, the length of the cell is 75 pixel
 color_list = [(255, 255, 255, 255), (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255), (255, 255, 0, 255)]
+# User can find its color through this list, in white, read, blue, green, yellow
 
-TCP_Port = 9006
-server_host = 'localhost'
+TCP_Port = 9006  # default port in socket
+server_host = 'localhost'  # default ip address of socket
 
-draw_data = []
-UID_list = [0, 1, 2, 3, 4]
-current_map = np.zeros((40, 40), dtype=int)
-lock_list = np.zeros((8, 8), dtype=int)
+draw_data = []  # buffer of the data created when playing game
+UID_list = [0, 1, 2, 3, 4]  # The list of how many player in the game totally
+current_map = np.zeros((40, 40), dtype=int)  # The map of game
+lock_list = np.zeros((8, 8), dtype=int)  # List of cell this player cannot draw on that
 
-max_client = 1
+max_client = 1 # max client determined by the server, default in 1
 player1 = "First player is: Player{}, {}"
 player2 = "Second player is: Player{}, {}"
 player3 = "Third player is: Player{}, {}"
 player4 = "Last player is: Player{}, {}"
+# Text used in show the game proccess
 
-Painter_end_flag = False
+Painter_end_flag = False # Flag for if this game is over
+
 
 def connection_setter(host, port):
+    '''
+        Set up the connection properties for TCP
+    :param host: host address in TCP link
+    :param port: host port in TCP link
+    :return:
+    '''
     global TCP_Port
     global server_host
     TCP_Port = int(port)
     server_host = str(host)
 
+
 def delete_list_duplicate():
+    '''
+    Clean up the duplicate data in the buffer before send data to server
+    :return:
+    '''
     global draw_data
     if draw_data is None:
         draw_data = []
@@ -45,6 +58,12 @@ def delete_list_duplicate():
 
 
 def client_update(pixel=None, UID=0):
+    '''
+    Update the user's map by receive pixel data from server
+    :param pixel: the location of pixel
+    :param UID: the UID who draw this pixel
+    :return:
+    '''
     if pixel is not None:
         x_axis = pixel[0]
         y_axis = pixel[1]
@@ -52,6 +71,12 @@ def client_update(pixel=None, UID=0):
 
 
 def client_update_cell(pixel=None, UID=0):
+    '''
+    Update the user's map by receive cell data from server
+    :param pixel: the location of pixel at the letf-top corner in the cell
+    :param UID: the UID who draw this pixel
+    :return:
+    '''
     if pixel is not None:
         x_axis = pixel[0]
         y_axis = pixel[1]
@@ -61,6 +86,10 @@ def client_update_cell(pixel=None, UID=0):
 
 
 def game_check():
+    '''
+    Check how much every user draw
+    :return: The rank of user and how much each ussr draw
+    '''
     Players = []
     for UID in UID_list:
         if UID == 0:
@@ -72,18 +101,16 @@ def game_check():
     return new
 
 
-def check_win():
-    p = game_check()
-    nth_player = 0
-    for temp in p:
-        if temp['percentage'] >= 0.5:
-            return True, nth_player
-        nth_player += 1
-    return False, 0
-
 
 class Brush(object):
+    '''
+        User's Brush class. Let user be able to draw on screen and fill the data buffer with user's painting
+    '''
     def __init__(self, screen):
+        '''
+        Initialize the Brush
+        :param screen: Which screen the brush is drwaing
+        '''
         global color
         self.color = color
         self.screen = screen
@@ -101,6 +128,11 @@ class Brush(object):
         self.drawing = False
 
     def get_line(self, position):
+        '''
+        Calculate the line draw by the user
+        :param position: Where the user put the pen
+        :return: The list of pixels in the line
+        '''
         lenx = position[0] - self.last_position[0]
         leny = position[1] - self.last_position[1]
         length = math.sqrt(lenx ** 2 + leny ** 2)
@@ -115,6 +147,11 @@ class Brush(object):
         return points
 
     def Draw(self, position):
+        '''
+        Draw the color on the painting board
+        :param position: Where the user put his pen
+        :return:
+        '''
         if self.drawing:
             for p in self.get_line(position):
                 if p[0] < 0 or p[0] >= 600 or p[1] < 0 or p[1] >= 600:
@@ -126,6 +163,7 @@ class Brush(object):
 
                 if lock_list[x_axis_lock][y_axis_lock] == 0 or \
                         lock_list[x_axis_lock][y_axis_lock] == Client_UID:
+                    # Only unlocked and user-locked cell can be drawn
                     message = {'UID': Client_UID, 'draw_record': (int(p[0] / 15), int(p[1] / 15)), 'more': True}
                     draw_data.append(message)
                     pg.draw.rect(self.screen, color, (x_axis, y_axis, 15, 15))
@@ -135,15 +173,23 @@ class Brush(object):
 
 class Painter:
     def __init__(self, Sock):
+        '''
+        Painter class to let user draw
+        :param Sock: the socket which used to send drawing data to client
+        '''
         pg.display.set_caption("Player " + str(Client_UID))
-        self.window = (600, 800)
+        self.window = (600, 800)  # the size of painting board
         self.clock = pg.time.Clock()
-        self.screen = pg.display.set_mode(self.window, 0, 32)
+        self.screen = pg.display.set_mode(self.window, 0, 32) # create board for painting
         self.brush = Brush(self.screen)
         self.paint_size = 10
         self.sock = Sock
 
     def run(self):
+        '''
+        Collect user's behaver every 0.1 seconds, and paint on the board
+        :return:
+        '''
         pg.init()
         self.screen.fill((255, 255, 255))
         self.draw_game_line()
@@ -151,7 +197,9 @@ class Painter:
         while True:
             self.clock.tick(600)
             for event in pg.event.get():
+                # collect the event created by mouse, do the painting
                 if event.type == QUIT or Painter_end_flag:
+                    # end the game when game over
                     pg.display.quit()
                     pg.quit()
                     return
@@ -165,6 +213,10 @@ class Painter:
             pg.display.update()
 
     def draw_game_line(self):
+        '''
+        Paint the background blocks on the board
+        :return:
+        '''
         block_x = 75
         block_y = 75
         for i in range(9):
@@ -173,6 +225,12 @@ class Painter:
             pg.draw.line(self.screen, (0, 0, 0), (0, j * block_x), (600, j * block_x), 3)
 
     def Draw_update(self, pxiel=None, UID=0):
+        """
+        Update the user's paint board by receive pixel data from server
+        :param pixel: the location of pixel
+        :param UID: the UID who draw this pixel
+        return:
+        """
         if pxiel is not None:
             x_axis = pxiel[0]
             y_axis = pxiel[1]
@@ -180,6 +238,12 @@ class Painter:
             self.draw_game_line()
 
     def Cell_update(self, pxiel=None, UID=0):
+        '''
+        Update the user's paint board by receive pixel data from server
+        :param pixel: the location of pixel
+        :param UID: the UID who draw this pixel
+        :return:
+        '''
         if pxiel is not None:
             x_axis = pxiel[0]
             y_axis = pxiel[1]
@@ -187,17 +251,26 @@ class Painter:
             self.draw_game_line()
 
     def paint_judgement(self, position, event_type):
+        '''
+        Paint the pxiel to the paint board with some limitions
+        :param position: Where the user is drawing
+        :param event_type: The user's action
+        :return:
+        '''
         x = int(position[0] / 15)
         y = int(position[1] / 15)
         if position[0] <= 600 or position[1] <= 600:
             if event_type == MOUSEBUTTONDOWN:
+                # user put down the mouse button, start drawing
                 self.brush.start(position)
                 message = {'UID': Client_UID, 'draw_record': (x, y), 'more': True}
                 draw_data.append(message)
             elif event_type == MOUSEMOTION:
+                # user drag the mouse to paining
                 self.brush.Draw(position)
                 self.draw_game_line()
             elif event_type == MOUSEBUTTONUP:
+                # user put up the mouse button, let server clean up the unfilled cells
                 self.brush.close()
                 message = {'UID': Client_UID, 'draw_record': (4, 5), 'more': False}
                 delete_list_duplicate()
@@ -206,6 +279,10 @@ class Painter:
                 self.sending_data()
 
     def sending_data(self):
+        '''
+        Send data in buffer to the server
+        :return:
+        '''
         while len(draw_data) != 0:
             message = draw_data.pop()
             sending = json.dumps(message)
@@ -214,6 +291,10 @@ class Painter:
         return
 
     def text_update(self):
+        '''
+        Update the ranking of each player and how much they draw
+        :return:
+        '''
         rect = pg.Surface((600, 200))
         rect.fill((255, 255, 255))
         self.screen.blit(rect, (0, 600))
@@ -252,6 +333,9 @@ class Painter:
 
 class TCP_client:
     def __init__(self):
+        """
+        Initialize the connection to the server
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((server_host, TCP_Port))
         connection = self.sock.recv(1024).decode()
@@ -321,6 +405,10 @@ class TCP_client:
                     exit(1)
 
     def build_player(self):
+        '''
+        Nigociate with server, get the id in gamem and know how many player in game
+        :return:
+        '''
         try:
             loop_time_out = 1000
             global Client_UID
@@ -336,7 +424,7 @@ class TCP_client:
                 data_stock = data.split(';;')
                 while len(data_stock) != 0:
                     data_js = data_stock.pop(0)
-                    ## ↓↓Get player ID, update client ID in program
+                    ## Get player ID, update client ID in program
                     if fnmatch(str(data_js), '{"PID": *, "MAX": *}'):
                         global max_client
                         global UID_list
@@ -373,6 +461,10 @@ class TCP_client:
             print('Build client error')
 
     def run(self):
+        '''
+        Run the game with multiple threads
+        :return:
+        '''
         self.build_player()
         th1 = threading.Thread(target=self.receive_message)
         th1.daemon = True
@@ -387,6 +479,10 @@ class TCP_client:
 
 
 def client_run_proccess():
+    '''
+    Game start entrance
+    :return:
+    '''
     time.sleep(1)
     app = TCP_client()
     app.run()
