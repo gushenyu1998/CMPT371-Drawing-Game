@@ -31,11 +31,13 @@ player4 = "Last player is: Player{}, {}"
 
 Painter_end_flag = False
 
-def connection_setter(host, port):
+
+def connection_setter(host, port):  # sets the port and host
     global TCP_Port
     global server_host
     TCP_Port = int(port)
     server_host = str(host)
+
 
 def delete_list_duplicate():
     global draw_data
@@ -44,7 +46,7 @@ def delete_list_duplicate():
     draw_data = [dict(t) for t in set([tuple(d.items()) for d in draw_data])]
 
 
-def client_update(pixel=None, UID=0):
+def client_update(pixel=None, UID=0):  # updates the game board on the client end
     if pixel is not None:
         x_axis = pixel[0]
         y_axis = pixel[1]
@@ -60,7 +62,7 @@ def client_update_cell(pixel=None, UID=0):
                 current_map[x_axis + i][y_axis + j] = UID
 
 
-def game_check():
+def game_check():  # checks the score
     Players = []
     for UID in UID_list:
         if UID == 0:
@@ -72,7 +74,7 @@ def game_check():
     return new
 
 
-def check_win():
+def check_win():  # checks the win condition
     p = game_check()
     nth_player = 0
     for temp in p:
@@ -82,7 +84,7 @@ def check_win():
     return False, 0
 
 
-class Brush(object):
+class Brush(object):  # class for the user brush to paint the cells
     def __init__(self, screen):
         global color
         self.color = color
@@ -114,7 +116,7 @@ class Brush(object):
         points.append((self.last_position[0] + length * cosx, self.last_position[1] + length * sinx))
         return points
 
-    def Draw(self, position):
+    def Draw(self, position):  # Draw the board state
         if self.drawing:
             for p in self.get_line(position):
                 if p[0] < 0 or p[0] >= 600 or p[1] < 0 or p[1] >= 600:
@@ -133,7 +135,7 @@ class Brush(object):
         self.last_position = position
 
 
-class Painter:
+class Painter:  # Paints the user input on the board and draws the board
     def __init__(self, Sock):
         pg.display.set_caption("Player " + str(Client_UID))
         self.window = (600, 800)
@@ -164,7 +166,7 @@ class Painter:
             self.sending_data()
             pg.display.update()
 
-    def draw_game_line(self):
+    def draw_game_line(self):  # draws the grid
         block_x = 75
         block_y = 75
         for i in range(9):
@@ -186,6 +188,7 @@ class Painter:
             pg.draw.rect(self.screen, color_list[UID], (x_axis * 15, y_axis * 15, 75, 75))
             self.draw_game_line()
 
+    # makes decision to conquer the cell based on the portion of cell painted
     def paint_judgement(self, position, event_type):
         x = int(position[0] / 15)
         y = int(position[1] / 15)
@@ -205,7 +208,7 @@ class Painter:
                     draw_data.append(message)
                 self.sending_data()
 
-    def sending_data(self):
+    def sending_data(self):  # sends updates to the server
         while len(draw_data) != 0:
             message = draw_data.pop()
             sending = json.dumps(message)
@@ -213,7 +216,7 @@ class Painter:
             self.sock.send(string.encode())
         return
 
-    def text_update(self):
+    def text_update(self):  # updates the user score on the screen
         rect = pg.Surface((600, 200))
         rect.fill((255, 255, 255))
         self.screen.blit(rect, (0, 600))
@@ -250,7 +253,7 @@ class Painter:
         pg.draw.rect(self.screen, color_list[game_proccess[3]['UID']], ((450, 700), (30, 30)))
 
 
-class TCP_client:
+class TCP_client:  # connects to the server
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((server_host, TCP_Port))
@@ -266,7 +269,7 @@ class TCP_client:
     def client_draw_panel(self, a=None):
         self.Painter.run()
 
-    def receive_message(self):
+    def receive_message(self):  # Receives the message and process the map, update client
         '''
         Receve the message and process the map, update client
         :return:
@@ -320,7 +323,7 @@ class TCP_client:
                     os.system("Pause")
                     exit(1)
 
-    def build_player(self):
+    def build_player(self): # makes the player ready after connected
         try:
             loop_time_out = 1000
             global Client_UID
@@ -386,7 +389,7 @@ class TCP_client:
         th2.join()
 
 
-def client_run_proccess():
+def client_run_proccess(): # runs the client functions
     time.sleep(1)
     app = TCP_client()
     app.run()
