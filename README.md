@@ -1,8 +1,22 @@
-# Drawing and Conquer
+# Draw and Conquer
 
   # Game Description:
       Players have color the maximum number of boxes in order to win the game.
-      A box once fully colored cannot be re-colored by another player
+      A box once fully colored cannot be re-colored by another player.
+      Please refer to the report for more informantion about the game.
+      
+      Required Packages
+         1. pygame
+         2. json
+         3. math
+         4. os
+         5. socket
+         6. threading
+         7. time
+         8. numpy
+         9. queue
+        10. sys
+        11. fmatch
 
   # How to run the game:  
       Step 1: Run the server_main.py

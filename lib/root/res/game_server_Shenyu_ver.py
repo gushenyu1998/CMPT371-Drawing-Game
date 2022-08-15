@@ -4,47 +4,37 @@ import sys
 import threading
 import time
 import queue
-import traceback
 from fnmatch import fnmatch
 import numpy as np
 
 
-class DrawGameServer:
-    '''
-        Initialize the server,
-    '''
-
+class DrawGameServer:  # Making the GameServer ready to launch
     def __init__(self, host, port, players):
-        self.port = port  # port in TCP clients
-        self.host = host  # ip address in TCP clients
+        self.port = port
+        self.host = host
 
-        self.clients = []  # list of clients connection socket
-        self.clients_address = []  # list of address of client's connection sockets
+        self.clients = []
+        self.clients_address = []
 
-        self.current_uid = 1  # Variable used in nigociate with user
+        self.current_uid = 1
         self.max_uid = players + 1
         self.uids = []
 
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # contribute the server listener
-        self.server.bind((self.host, port))  # bind listening port
-        self.server.listen(5)  # max listen 5 clients
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind((self.host, port))
+        self.server.listen(5)
 
-        self.receive_drawing_queue = queue.Queue()  # buffer for the receiving data
+        self.receive_drawing_queue = queue.Queue()
 
-        self.map = np.zeros((40, 40), dtype=int)  # map to handle the shared object
-        self.lock_list = np.zeros((8, 8), dtype=int)  # lock cell list to handle the shared object
+        self.map = np.zeros((40, 40), dtype=int)
+        self.lock_list = np.zeros((8, 8), dtype=int)
 
-        self.lock = threading.Lock()  # Lock for multiple thread
+        self.lock = threading.Lock()
         self.last_message = ""
 
         self.threads = []
 
     def handle_client(self, client):
-        '''
-        Handle the message from the clients, and catch exception when happens
-        :param client: the player's connection in game
-        :return:
-        '''
         while True:
             try:
                 while True:
@@ -54,14 +44,9 @@ class DrawGameServer:
                 break
 
     def check_win(self):
-        '''
-        Check if the game is over, if yes, send game over message
-        :return:
-        '''
         temp = np.sum(self.map == 0)
         Players = []
         if temp == 0:
-            # use the left white cells to check if the game is over
             message = "CLOSEGAME;;CLOSEGAME;;CLOSEGAME;;"
             for UID in self.uids:
                 temp = (np.sum(self.map == UID)) / 1600
@@ -73,23 +58,16 @@ class DrawGameServer:
             for i in range(3):
                 message += winnner_json + ";;"
             self.broadcast(message.encode())
-            # broadcast the game over message to all players
             self.server.close()
             print("exit game server")
             exit()
 
-    def client_receiver(self, client):
-        '''
-        Handle the message received from each players, put the player's date into the buffer
-        :param client: game player's connection sockets
-        :return:
-        '''
+    def client_receiver(self, client):  # Connecting the clients with the server
         while True:
             try:
                 while True:
                     data = client.recv(1024).decode()
                     if len(data) == 0:
-                        # After game over, close the program
                         print("client close")
                         client.close()
                         sys.exit(0)
@@ -100,7 +78,6 @@ class DrawGameServer:
                     while len(data_stock) != 0:
                         data_js = data_stock.pop()
                         if fnmatch(str(data_js), '{"UID": *, "draw_record": *, "more": *}'):
-                            # If the matched data received, push them to the buffer of server
                             data_json = json.loads(data_js)
                             self.lock.acquire()
                             self.receive_drawing_queue.put(data_json)
@@ -109,23 +86,13 @@ class DrawGameServer:
                 client.close()
                 return
 
-    def broadcast(self, message):
-        '''
-        # send message to every player in the game
-        :param message:
-        :return:
-        '''
-
+    def broadcast(self, message):  # communicating client with helpful game state messages
         for client in self.clients:
             client.send(message)
 
-    def negotiateUID(self):
-        '''
-        Nigoticate with player, distribute id to each player
-        :return:
-        '''
+    def negotiateUID(self): # starts the after all the players are connected
         while True:
-            # have enough play, send start game and exit the function 
+            # have enough players, send start game and exit the function
             if self.current_uid == self.max_uid:
                 time.sleep(3)
                 self.broadcast("GAMESTART;;GAMESTART;;GAMESTART".encode('utf-8'))
@@ -143,12 +110,11 @@ class DrawGameServer:
 
             send_uid_data = ';;{"PID": ' + str(new_play_uid) + ', "MAX": ' + str(self.max_uid - 1) + '};;'
             for i in range(2):
-                client.send(send_uid_data.encode('utf-8'))  # send to negotiate protocol to clients
+                client.send(send_uid_data.encode('utf-8'))
 
             self.clients.append(client)
             self.clients_address.append(address)
 
-            # for every client, create a thread for them to receive message
             thread = threading.Thread(target=self.handle_client, args=(client,))
             self.threads.append(thread)
             thread.start()
@@ -213,7 +179,7 @@ class DrawGameServer:
                 exit()
                 return
 
-    def cell_check(self, UID, position):
+    def cell_check(self, UID, position):  # checks if a cell is filled enough to be acquired by a player
         '''
         check if a cell is full-filled
         :param UID: check by full filled by who
@@ -231,21 +197,11 @@ class DrawGameServer:
             return False
 
     def inGame(self):
-        '''
-        Create a new thread to process and send message to clients
-        :return:
-        '''
         th3 = threading.Thread(target=self.pixel_proccess)
         self.threads.append(th3)
         th3.start()
 
     def cell_fill_out(self, UID, position):
-        '''
-        Fill the cell in the map data structure inside
-        :param UID: which player fill this cell
-        :param position: where the cell is
-        :return:
-        '''
         p = position
         x = int(p[0] / 5) * 5
         y = int(p[1] / 5) * 5
@@ -253,7 +209,7 @@ class DrawGameServer:
             for j in range(5):
                 self.map[x + i][y + j] = UID
 
-    def run(self):
+    def run(self): # Initiates the server
         print('Server is starting ... number of player in this game is: ' + str(self.max_uid - 1))
         print("This server's IP address is:" + str(self.host) + " port number is: " + str(self.server.getsockname()[1]))
         self.negotiateUID()
