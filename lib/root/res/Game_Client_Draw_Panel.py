@@ -31,6 +31,11 @@ player4 = "Last player is: Player{}, {}"
 
 Painter_end_flag = False
 
+def connection_setter(host, port):
+    global TCP_Port
+    global server_host
+    TCP_Port = int(port)
+    server_host = str(host)
 
 def delete_list_duplicate():
     global draw_data
@@ -385,11 +390,3 @@ def client_run_proccess():
     time.sleep(1)
     app = TCP_client()
     app.run()
-
-
-if __name__ == '__main__':
-    host =  input("Please input your room IP or domain: ")
-    server_host = str(host)
-    port = input("Please input your room port number: ")
-    TCP_Port = int(port)
-    client_run_proccess()
